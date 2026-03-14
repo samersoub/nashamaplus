@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and wallet information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "balance": { "type": "number", "description": "Virtual wallet balance" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "User role" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
+      },
+      "required": ["uid", "email", "balance", "role"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Service categories (e.g., Games, Apps)",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Category name" },
+        "icon": { "type": "string", "description": "Lucide icon name" }
+      },
+      "required": ["name"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Digital services available for purchase",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Service name (e.g., PUBG 60 UC)" },
+        "categoryId": { "type": "string", "description": "Reference to Category ID" },
+        "price": { "type": "number", "description": "Price in wallet balance" },
+        "description": { "type": "string", "description": "Service details" },
+        "imageUrl": { "type": "string", "description": "Image URL for the service" }
+      },
+      "required": ["name", "categoryId", "price"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "User orders for services",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Reference to User UID" },
+        "serviceId": { "type": "string", "description": "Reference to Service ID" },
+        "serviceName": { "type": "string", "description": "Name of the service at time of order" },
+        "playerAppId": { "type": "string", "description": "The ID of the user in the target app/game" },
+        "amount": { "type": "number", "description": "Amount deducted" },
+        "status": { "type": "string", "enum": ["pending", "completed", "cancelled"], "description": "Order status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Order timestamp" }
+      },
+      "required": ["userId", "serviceId", "playerAppId", "amount", "status", "createdAt"]
+    },
+    "Deposit": {
+      "title": "Deposit",
+      "description": "Wallet deposit requests",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Reference to User UID" },
+        "userEmail": { "type": "string", "description": "Email of the user requesting deposit" },
+        "amount": { "type": "number", "description": "Requested deposit amount" },
+        "status": { "type": "string", "enum": ["waiting", "approved", "rejected"], "description": "Deposit status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Request timestamp" }
+      },
+      "required": ["userId", "amount", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users": { "schema": "User", "description": "User profiles" },
+    "categories": { "schema": "Category", "description": "Service categories" },
+    "services": { "schema": "Service", "description": "Available services" },
+    "orders": { "schema": "Order", "description": "Service orders" },
+    "deposits": { "schema": "Deposit", "description": "Deposit requests" }
+  }
+}

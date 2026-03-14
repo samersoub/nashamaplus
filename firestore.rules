@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, email, displayName, balance, role, createdAt
+    //
+    // Collection: categories
+    // Fields: name, icon
+    //
+    // Collection: services
+    // Fields: name, categoryId, price, description, imageUrl
+    //
+    // Collection: orders
+    // Fields: userId, serviceId, serviceName, playerAppId, amount, status, createdAt
+    //
+    // Collection: deposits
+    // Fields: userId, userEmail, amount, status, createdAt
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          (request.auth.token.email == "sameralsoub@gmail.com" && request.auth.token.email_verified == true) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'balance', 'role', 'displayName', 'createdAt']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.balance is number &&
+             data.role in ['user', 'admin'] &&
+             data.displayName is string &&
+             data.createdAt is string;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['userId', 'userEmail', 'serviceId', 'serviceName', 'playerAppId', 'amount', 'status', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.amount is number &&
+             data.status == 'pending';
+    }
+
+    function isValidDeposit(data) {
+      return data.keys().hasAll(['userId', 'amount', 'status', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.status == 'waiting';
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == userId && isValidUser(request.resource.data) && 
+                    (
+                      (request.resource.data.role == 'admin' && request.auth.token.email == "sameralsoub@gmail.com") ||
+                      (request.resource.data.role == 'user' && request.resource.data.balance == 0)
+                    );
+      allow update: if isAdmin();
+      allow update: if isAuthenticated() && request.auth.uid == userId && 
+                     request.resource.data.role == resource.data.role &&
+                     request.resource.data.balance <= resource.data.balance;
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && isValidOrder(request.resource.data) && 
+                    request.resource.data.createdAt == request.time;
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /deposits/{depositId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidDeposit(request.resource.data);
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+  }
+}
