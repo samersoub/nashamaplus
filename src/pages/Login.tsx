@@ -5,12 +5,20 @@ import { Zap, Chrome } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const Login: React.FC = () => {
+  const [error, setError] = React.useState<string | null>(null);
+
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
+    setError(null);
     try {
       await signInWithPopup(auth, provider);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
+      if (error.code === 'auth/unauthorized-domain') {
+        setError('هذا النطاق (Domain) غير مصرح به في إعدادات Firebase. يرجى إضافة رابط الموقع إلى القائمة المسموح بها.');
+      } else {
+        setError('فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
+      }
     }
   };
 
@@ -35,6 +43,11 @@ export const Login: React.FC = () => {
         </div>
 
         <div className="relative z-10 space-y-4">
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-sm font-bold border border-red-100 mb-4">
+              {error}
+            </div>
+          )}
           <button 
             onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-4 bg-white border border-slate-100 hover:border-primary/30 text-slate-700 py-5 rounded-[2rem] font-black text-lg transition-all shadow-xl shadow-slate-200/50 hover:shadow-primary/10 active:scale-95 group"

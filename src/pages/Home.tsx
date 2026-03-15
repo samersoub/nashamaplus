@@ -6,6 +6,7 @@ import { Service, Category, Order } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, ShoppingCart, CheckCircle2, XCircle, AlertCircle, Zap, ChevronLeft, ChevronRight, TrendingUp, Clock, Loader2 } from 'lucide-react';
 import { sendOrderNotificationToWhatsApp } from '../services/whatsapp';
+import { updateBalance, createTransaction, getUser as getDCUser } from '../services/dataconnect';
 
 enum OperationType {
   CREATE = 'create',
@@ -25,7 +26,7 @@ export const Home: React.FC = () => {
   const [orderModal, setOrderModal] = useState<{ show: boolean; service: Service | null }>({ show: false, service: null });
   const [playerAppId, setPlayerAppId] = useState('');
   const [orderStatus, setOrderStatus] = useState<{ type: 'success' | 'error' | 'processing' | null; message: string }>({ type: null, message: '' });
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
 
   useEffect(() => {
     const unsubServices = onSnapshot(query(collection(db, 'services'), orderBy('createdAt', 'desc')), (snapshot) => {
@@ -48,42 +49,50 @@ export const Home: React.FC = () => {
 
     setOrderStatus({ type: 'processing', message: 'جاري معالجة الطلب...' });
     try {
-      await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, 'users', user.uid);
-        const userDoc = await transaction.get(userRef);
-        
-        if (!userDoc.exists()) throw new Error('لم يتم العثور على ملف المستخدم');
-        
-        const currentBalance = userDoc.data().balance;
-        const isAdmin = userDoc.data().role === 'admin';
-        
-        if (!isAdmin && currentBalance < orderModal.service!.price) {
-          throw new Error('رصيدك غير كافٍ. يرجى شحن محفظتك.');
-        }
+      // Fetch latest balance from Data Connect
+      const dcUser = await getDCUser(user.uid);
+      if (!dcUser) throw new Error('لم يتم العثور على ملف المستخدم في قاعدة البيانات');
 
-        if (!isAdmin) {
-          transaction.update(userRef, {
-            balance: currentBalance - orderModal.service!.price
-          });
-        }
+      const currentBalance = dcUser.balance;
+      const isAdmin = profile.role === 'admin';
+      const price = orderModal.service.price;
 
-        const orderData: Omit<Order, 'id'> = {
-          userId: user.uid,
-          userEmail: user.email!,
-          serviceId: orderModal.service!.id,
-          serviceName: orderModal.service!.name,
-          amount: orderModal.service!.price,
-          playerAppId,
-          status: 'pending',
-          createdAt: serverTimestamp() as any
-        };
+      if (!isAdmin && currentBalance < price) {
+        throw new Error('رصيدك غير كافٍ. يرجى شحن محفظتك.');
+      }
 
-        const ordersRef = collection(db, 'orders');
-        const newOrderRef = doc(ordersRef);
-        transaction.set(newOrderRef, orderData);
-      });
+      // Deduct balance if not admin
+      if (!isAdmin) {
+        await updateBalance(user.uid, currentBalance - price);
+      }
+
+      // Create transaction record in Data Connect
+      await createTransaction(
+        user.uid,
+        price,
+        'purchase',
+        'completed'
+      );
+
+      // Also keep Firestore order for admin dashboard (if needed)
+      const orderData: Omit<Order, 'id'> = {
+        userId: user.uid,
+        userEmail: user.email!,
+        serviceId: orderModal.service!.id,
+        serviceName: orderModal.service!.name,
+        amount: price,
+        playerAppId,
+        status: 'pending',
+        createdAt: serverTimestamp() as any
+      };
+
+      const ordersRef = collection(db, 'orders');
+      await setDoc(doc(ordersRef), orderData);
 
       sendOrderNotificationToWhatsApp(orderModal.service.name, playerAppId, user.email!);
+      
+      // Refresh local profile balance
+      await refreshProfile();
       setOrderStatus({ type: 'success', message: 'تم تقديم الطلب! سيتم تنفيذه قريباً.' });
       setTimeout(() => {
         setOrderModal({ show: false, service: null });

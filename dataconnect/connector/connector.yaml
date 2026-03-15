@@ -1,0 +1,7 @@
+connectorId: default
+serviceId: nashamaplus
+region: us-central1
+generate:
+  javascriptSdk:
+    outputDir: "../../src/dataconnect/generated"
+    packageJsonDir: "../../"

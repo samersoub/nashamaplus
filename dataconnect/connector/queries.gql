@@ -1,0 +1,10 @@
+# Get User by ID
+query GetUser($id: String!) @auth(level: USER) {
+  user(id: $id) {
+    id
+    username
+    email
+    balance
+    phoneNumber
+  }
+}

@@ -1,0 +1,32 @@
+# Create User
+mutation CreateUser($id: String!, $username: String!, $email: String!, $balance: Float!, $phoneNumber: String) @auth(level: USER) {
+  user_insert(data: {
+    id: $id, 
+    username: $username, 
+    email: $email, 
+    balance: $balance, 
+    phoneNumber: $phoneNumber
+  })
+}
+
+# Update Balance
+mutation UpdateBalance($id: String!, $newBalance: Float!) @auth(level: USER) {
+  user_update(id: $id, data: { balance: $newBalance })
+}
+
+# Create Transaction
+mutation CreateTransaction(
+  $id: String!, 
+  $userId: String!, 
+  $amount: Float!, 
+  $transactionType: String!, 
+  $status: String!
+) @auth(level: USER) {
+  transaction_insert(data: {
+    id: $id,
+    userId: $userId,
+    amount: $amount,
+    transactionType: $transactionType,
+    status: $status
+  })
+}

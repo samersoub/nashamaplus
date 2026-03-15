@@ -66,12 +66,14 @@ import { Login } from './pages/Login';
 import { Profile } from './pages/Profile';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Loader2 } from 'lucide-react';
+import { createUser as createDCUser, getUser as getDCUser } from './services/dataconnect';
 
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -79,6 +81,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   isAdmin: false,
+  refreshProfile: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -88,48 +91,59 @@ export default function App() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const refreshProfile = async () => {
+    if (!user) return;
+    try {
+      const dcUser = await getDCUser(user.uid);
+      if (dcUser) {
+        setProfile({
+          uid: dcUser.id,
+          email: dcUser.email,
+          displayName: dcUser.username,
+          balance: dcUser.balance,
+          role: user.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
+          createdAt: new Date().toISOString(), // Fallback
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing profile from Data Connect:', error);
+    }
+  };
+
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
       if (firebaseUser) {
         try {
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
-          const userDoc = await getDoc(userDocRef);
+          // Try to get from Data Connect
+          let dcUser = await getDCUser(firebaseUser.uid);
           
-          if (!userDoc.exists()) {
-            const newProfile: UserProfile = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || 'User',
-              balance: 0,
-              role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
-              createdAt: new Date().toISOString(),
-            };
-            await setDoc(userDocRef, newProfile);
-            setProfile(newProfile);
-          } else {
-            const data = userDoc.data() as UserProfile;
-            // Force admin role if email matches
-            if (firebaseUser.email === 'sameralsoub@gmail.com' && data.role !== 'admin') {
-              const { updateDoc } = await import('firebase/firestore');
-              await updateDoc(userDocRef, { role: 'admin' });
-            }
+          if (!dcUser) {
+            // Create in Data Connect if not exists
+            await createDCUser(
+              firebaseUser.uid,
+              firebaseUser.displayName || 'User',
+              firebaseUser.email || ''
+            );
+            dcUser = await getDCUser(firebaseUser.uid);
           }
 
-          // Listen for real-time profile updates (balance changes)
-          const unsubscribeProfile = onSnapshot(userDocRef, (doc) => {
-            if (doc.exists()) {
-              setProfile(doc.data() as UserProfile);
-            }
-          }, (error) => {
-            handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
-          });
+          if (dcUser) {
+            setProfile({
+              uid: dcUser.id,
+              email: dcUser.email,
+              displayName: dcUser.username,
+              balance: dcUser.balance,
+              role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
+              createdAt: new Date().toISOString(),
+            });
+          }
 
           setLoading(false);
-          return () => unsubscribeProfile();
         } catch (error) {
-          handleFirestoreError(error, OperationType.GET, `users/${firebaseUser?.uid}`);
+          console.error('Data Connect Auth Error:', error);
+          setLoading(false);
         }
       } else {
         setProfile(null);
@@ -154,7 +168,7 @@ export default function App() {
   const isAdmin = profile?.role === 'admin' || (user?.email === 'sameralsoub@gmail.com' && user?.emailVerified);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin, refreshProfile }}>
       <Router>
         <Layout>
           <Routes>

@@ -6,9 +6,10 @@ import { Order, Deposit } from '../types';
 import { Wallet, History, Send, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowUpRight } from 'lucide-react';
 import { sendDepositRequestToWhatsApp } from '../services/whatsapp';
 import { motion } from 'motion/react';
+import { createTransaction } from '../services/dataconnect';
 
 export const Profile: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,10 @@ export const Profile: React.FC = () => {
   const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositSuccess, setDepositSuccess] = useState(false);
+
+  useEffect(() => {
+    refreshProfile();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -53,6 +58,14 @@ export const Profile: React.FC = () => {
 
     setIsDepositing(true);
     try {
+      // Create transaction in Data Connect
+      await createTransaction(
+        user.uid,
+        parseFloat(depositAmount),
+        'deposit',
+        'pending'
+      );
+
       const depositData: Omit<Deposit, 'id'> = {
         userId: user.uid,
         userEmail: profile.email,
@@ -68,6 +81,7 @@ export const Profile: React.FC = () => {
       
       setDepositSuccess(true);
       setDepositAmount('');
+      await refreshProfile();
       setTimeout(() => setDepositSuccess(false), 5000);
     } catch (error) {
       console.error('Deposit request failed:', error);
