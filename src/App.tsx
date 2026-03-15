@@ -138,11 +138,30 @@ export default function App() {
               role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
               createdAt: new Date().toISOString(),
             });
+          } else {
+            // Fallback to basic profile if DC fails
+            setProfile({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              displayName: firebaseUser.displayName || 'User',
+              balance: 0,
+              role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
+              createdAt: new Date().toISOString(),
+            });
           }
 
           setLoading(false);
         } catch (error) {
           console.error('Data Connect Auth Error:', error);
+          // Fallback on error
+          setProfile({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || 'User',
+            balance: 0,
+            role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
+            createdAt: new Date().toISOString(),
+          });
           setLoading(false);
         }
       } else {

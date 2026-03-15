@@ -25,6 +25,12 @@ export const getUser = async (id: string) => {
   return data.user as UserDC | null;
 };
 
+export const listUsers = async () => {
+  const result = await executeQuery(queryRef(dc, 'ListUsers'));
+  const data = result.data as any;
+  return data.users as UserDC[];
+};
+
 export const updateBalance = async (id: string, newBalance: number) => {
   return executeMutation(mutationRef(dc, 'UpdateBalance', { id, newBalance }));
 };

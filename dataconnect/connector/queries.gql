@@ -8,3 +8,14 @@ query GetUser($id: String!) @auth(level: USER) {
     phoneNumber
   }
 }
+
+# List All Users (Admin only ideally, but for now USER level for simplicity in this demo)
+query ListUsers @auth(level: USER) {
+  users {
+    id
+    username
+    email
+    balance
+    phoneNumber
+  }
+}

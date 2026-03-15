@@ -12,15 +12,18 @@ enum OperationType {
   GET = 'get',
   WRITE = 'write',
 }
-import { Plus, Trash2, Check, X, Loader2, Package, Wallet, ListTree, Users, ArrowUpRight } from 'lucide-react';
-import { motion } from 'motion/react';
+import { Plus, Trash2, Check, X, Loader2, Package, Wallet, ListTree, Users, ArrowUpRight, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { updateBalance, listUsers, UserDC } from '../services/dataconnect';
 
 export const AdminDashboard: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [allUsers, setAllUsers] = useState<UserDC[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userSearch, setUserSearch] = useState('');
 
   // Form states
   const [newCatName, setNewCatName] = useState('');
@@ -30,7 +33,21 @@ export const AdminDashboard: React.FC = () => {
   const [newServiceDesc, setNewServiceDesc] = useState('');
   const [newServiceImg, setNewServiceImg] = useState('');
 
+  const [topupModal, setTopupModal] = useState<{ show: boolean; user: UserDC | null }>({ show: false, user: null });
+  const [topupAmount, setTopupAmount] = useState('');
+  const [isTopupLoading, setIsTopupLoading] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const users = await listUsers();
+      setAllUsers(users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
   useEffect(() => {
+    fetchData();
     const unsubCats = onSnapshot(collection(db, 'categories'), (s) => {
       setCategories(s.docs.map(d => ({ id: d.id, ...d.data() } as Category)));
     }, (error) => {
@@ -59,93 +76,74 @@ export const AdminDashboard: React.FC = () => {
     return () => { unsubCats(); unsubServices(); unsubOrders(); unsubDeposits(); };
   }, []);
 
+  const handleSeedData = async () => {
+    try {
+      const categoriesRef = collection(db, 'categories');
+      // Add default categories
+      const defaultCats = [
+        { name: 'ببجي موبايل', icon: 'Gamepad2' },
+        { name: 'جواكر', icon: 'Cards' },
+        { name: 'لاما شات', icon: 'MessageCircle' }
+      ];
+
+      for (const cat of defaultCats) {
+        await addDoc(categoriesRef, cat);
+      }
+
+      alert('تمت إضافة البيانات التجريبية بنجاح!');
+    } catch (error) {
+      console.error('Error seeding data:', error);
+      alert('حدث خطأ أثناء إضافة البيانات');
+    }
+  };
+
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addDoc(collection(db, 'categories'), { name: newCatName, icon: 'Gamepad2' });
-    setNewCatName('');
+    try {
+      await addDoc(collection(db, 'categories'), { name: newCatName, icon: 'Gamepad2' });
+      setNewCatName('');
+    } catch (error) {
+      console.error('Error adding category:', error);
+    }
   };
 
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
-    await addDoc(collection(db, 'services'), {
-      name: newServiceName,
-      price: parseFloat(newServicePrice),
-      categoryId: newServiceCatId,
-      description: newServiceDesc,
-      imageUrl: newServiceImg
-    });
-    setNewServiceName(''); setNewServicePrice(''); setNewServiceDesc(''); setNewServiceImg('');
-  };
-
-  const handleSeedData = async () => {
-    setLoading(true);
     try {
-      const chatCat = await addDoc(collection(db, 'categories'), { name: 'تطبيقات الدردشة الصوتية', icon: 'Mic2' });
-      const gamesCat = await addDoc(collection(db, 'categories'), { name: 'الألعاب والترفيه', icon: 'Gamepad2' });
-
-      const servicesToSeed = [
-        {
-          name: 'لاما شات - 1000 عملة',
-          price: 10,
-          categoryId: chatCat.id,
-          description: 'شحن عملات تطبيق لاما شات - تسليم فوري',
-          imageUrl: 'https://images.unsplash.com/photo-1611605698335-8b1569810432?w=800&q=80'
-        },
-        {
-          name: 'بيجو لايف - 500 ماسة',
-          price: 15,
-          categoryId: chatCat.id,
-          description: 'شحن ماسات بيجو لايف - آمن وسريع',
-          imageUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=800&q=80'
-        },
-        {
-          name: 'لاما لودو - باقة ذهبية',
-          price: 20,
-          categoryId: chatCat.id,
-          description: 'شحن ذهب لاما لودو لرفع مستواك',
-          imageUrl: 'https://images.unsplash.com/photo-1611996575749-79a3a250f948?w=800&q=80'
-        },
-        {
-          name: 'جواكر - 50,000 توكنز',
-          price: 12,
-          categoryId: gamesCat.id,
-          description: 'شحن توكنز تطبيق جواكر لجميع الألعاب',
-          imageUrl: 'https://images.unsplash.com/photo-1523875194681-bedd468c58bf?w=800&q=80'
-        },
-        {
-          name: 'ببجي موبايل - 660 UC',
-          price: 25,
-          categoryId: gamesCat.id,
-          description: 'شحن شدات ببجي موبايل - تسليم تلقائي',
-          imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80'
-        }
-      ];
-
-      for (const s of servicesToSeed) {
-        await addDoc(collection(db, 'services'), { ...s, createdAt: serverTimestamp() });
-      }
-      alert('تم تهيئة البيانات بنجاح!');
+      await addDoc(collection(db, 'services'), {
+        name: newServiceName,
+        price: parseFloat(newServicePrice),
+        categoryId: newServiceCatId,
+        description: newServiceDesc,
+        imageUrl: newServiceImg,
+        createdAt: serverTimestamp()
+      });
+      setNewServiceName(''); setNewServicePrice(''); setNewServiceDesc(''); setNewServiceImg('');
     } catch (error) {
-      console.error(error);
-      alert('حدث خطأ أثناء تهيئة البيانات');
+      console.error('Error adding service:', error);
     }
-    setLoading(false);
   };
 
   const handleApproveDeposit = async (deposit: Deposit) => {
     try {
-      await runTransaction(db, async (transaction) => {
-        const userRef = doc(db, 'users', deposit.userId);
-        const userDoc = await transaction.get(userRef);
-        
-        if (!userDoc.exists()) throw new Error("User does not exist!");
-
-        const currentBalance = userDoc.data().balance || 0;
-        transaction.update(userRef, { balance: currentBalance + deposit.amount });
-        transaction.update(doc(db, 'deposits', deposit.id), { status: 'approved' });
-      });
+      // Update balance in Data Connect
+      const user = allUsers.find(u => u.id === deposit.userId);
+      if (user) {
+        await updateBalance(deposit.userId, user.balance + deposit.amount);
+      } else {
+        // Fallback if user not in list
+        const { getUser } = await import('../services/dataconnect');
+        const dcUser = await getUser(deposit.userId);
+        if (dcUser) {
+          await updateBalance(deposit.userId, dcUser.balance + deposit.amount);
+        }
+      }
+      
+      // Update status in Firestore
+      await updateDoc(doc(db, 'deposits', deposit.id), { status: 'approved' });
+      fetchData(); // Refresh users list
     } catch (e) {
-      console.error("Transaction failed: ", e);
+      console.error("Deposit approval failed: ", e);
     }
   };
 
@@ -159,6 +157,24 @@ export const AdminDashboard: React.FC = () => {
 
   const handleCancelOrder = async (id: string) => {
     await updateDoc(doc(db, 'orders', id), { status: 'cancelled' });
+  };
+
+  const handleManualTopup = async () => {
+    if (!topupModal.user || !topupAmount || isNaN(parseFloat(topupAmount))) return;
+
+    setIsTopupLoading(true);
+    try {
+      await updateBalance(topupModal.user.id, topupModal.user.balance + parseFloat(topupAmount));
+      await fetchData();
+      setTopupModal({ show: false, user: null });
+      setTopupAmount('');
+      alert('تم شحن الرصيد بنجاح!');
+    } catch (error) {
+      console.error('Manual topup failed:', error);
+      alert('حدث خطأ أثناء الشحن');
+    } finally {
+      setIsTopupLoading(false);
+    }
   };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
@@ -317,6 +333,63 @@ export const AdminDashboard: React.FC = () => {
         </section>
       </div>
 
+      {/* User Management Section */}
+      <section className="glass-card rounded-[2.5rem] overflow-hidden border border-white/50">
+        <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-100 rounded-xl">
+              <Users className="w-5 h-5 text-indigo-600" />
+            </div>
+            <h2 className="font-black text-slate-900 text-lg">إدارة الأعضاء</h2>
+          </div>
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="بحث عن عضو..." 
+              className="pr-10 pl-4 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-right">
+            <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <tr>
+                <th className="px-8 py-4">المستخدم</th>
+                <th className="px-8 py-4">البريد الإلكتروني</th>
+                <th className="px-8 py-4">الرصيد</th>
+                <th className="px-8 py-4">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {allUsers.filter(u => u.username.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase())).map(user => (
+                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-8 py-4">
+                    <p className="font-black text-slate-900">{user.username}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">{user.id}</p>
+                  </td>
+                  <td className="px-8 py-4 text-sm text-slate-600">{user.email}</td>
+                  <td className="px-8 py-4">
+                    <span className="font-black text-primary">{user.balance.toFixed(2)} دينار</span>
+                  </td>
+                  <td className="px-8 py-4">
+                    <button 
+                      onClick={() => setTopupModal({ show: true, user })}
+                      className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-black hover:bg-primary hover:text-white transition-all"
+                    >
+                      <ArrowUpRight className="w-4 h-4" />
+                      شحن رصيد
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Categories Management */}
         <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50">
@@ -405,6 +478,71 @@ export const AdminDashboard: React.FC = () => {
           </form>
         </section>
       </div>
+
+      {/* Top-up Modal */}
+      <AnimatePresence>
+        {topupModal.show && topupModal.user && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isTopupLoading && setTopupModal({ show: false, user: null })}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden p-8 space-y-8"
+            >
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-slate-900">شحن رصيد يدوي</h3>
+                <p className="text-slate-500 font-medium">أنت الآن تقوم بشحن رصيد للمستخدم: <span className="text-primary font-bold">{topupModal.user.username}</span></p>
+              </div>
+
+              <div className="bg-slate-50 p-6 rounded-3xl space-y-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الرصيد الحالي</p>
+                <p className="text-2xl font-black text-slate-900">{topupModal.user.balance.toFixed(2)} دينار</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">المبلغ المراد إضافته</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={topupAmount}
+                      onChange={(e) => setTopupAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-lg"
+                    />
+                    <span className="absolute left-6 top-1/2 -translate-y-1/2 font-bold text-slate-400">دينار</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleManualTopup}
+                    disabled={!topupAmount || isTopupLoading}
+                    className="flex-1 btn-primary py-4 rounded-2xl disabled:opacity-50"
+                  >
+                    {isTopupLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'تأكيد الشحن'}
+                  </button>
+                  <button
+                    onClick={() => setTopupModal({ show: false, user: null })}
+                    disabled={isTopupLoading}
+                    className="px-8 py-4 rounded-2xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
