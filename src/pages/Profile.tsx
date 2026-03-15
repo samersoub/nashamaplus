@@ -3,7 +3,7 @@ import { collection, query, where, onSnapshot, addDoc, orderBy } from 'firebase/
 import { db } from '../firebase';
 import { useAuth } from '../App';
 import { Order, Deposit } from '../types';
-import { Wallet, History, Send, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Wallet, History, Send, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowUpRight, MessageCircle } from 'lucide-react';
 import { sendDepositRequestToWhatsApp } from '../services/whatsapp';
 import { motion } from 'motion/react';
 import { createTransaction } from '../services/dataconnect';
@@ -52,11 +52,14 @@ export const Profile: React.FC = () => {
     };
   }, [user]);
 
+  const [submittedAmount, setSubmittedAmount] = useState('');
+
   const handleDepositRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !profile || !depositAmount) return;
 
     setIsDepositing(true);
+    setSubmittedAmount(depositAmount);
     try {
       // Create transaction in Data Connect
       await createTransaction(
@@ -82,7 +85,7 @@ export const Profile: React.FC = () => {
       setDepositSuccess(true);
       setDepositAmount('');
       await refreshProfile();
-      setTimeout(() => setDepositSuccess(false), 5000);
+      setTimeout(() => setDepositSuccess(false), 10000);
     } catch (error) {
       console.error('Deposit request failed:', error);
     } finally {
@@ -168,10 +171,21 @@ export const Profile: React.FC = () => {
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 p-4 bg-green-50 text-green-700 rounded-2xl text-xs font-bold border border-green-100"
+                className="space-y-4"
               >
-                <CheckCircle2 className="w-5 h-5 shrink-0" />
-                <span>تم إرسال الطلب! جاري التحويل إلى واتساب...</span>
+                <div className="flex items-center gap-3 p-4 bg-green-50 text-green-700 rounded-2xl text-xs font-bold border border-green-100">
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
+                  <span>تم إرسال الطلب! جاري التحويل إلى واتساب...</span>
+                </div>
+                <a 
+                  href={`https://wa.me/962781254771?text=${encodeURIComponent(`مرحباً أدمن، أود إيداع ${submittedAmount} دينار في محفظتي في نشامى بلس. بريدي الإلكتروني هو: ${profile?.email}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-4 bg-green-600 text-white rounded-2xl font-black text-sm hover:bg-green-700 transition-all shadow-lg shadow-green-200"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  اضغط هنا إذا لم يتم تحويلك تلقائياً
+                </a>
               </motion.div>
             )}
           </div>
