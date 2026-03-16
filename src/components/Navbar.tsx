@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { auth } from '../firebase';
 import { LogOut, User, LayoutDashboard, Wallet, Zap, Search, Youtube, Instagram, MessageCircle } from 'lucide-react';
+import { WHATSAPP_NUMBER } from '../constants';
 
 export const Navbar: React.FC = () => {
   const { user, profile, isAdmin } = useAuth();
@@ -31,35 +32,35 @@ export const Navbar: React.FC = () => {
             <button className="p-2 text-slate-400 hover:text-primary transition-colors">
               <Instagram className="w-4 h-4" />
             </button>
-            <a 
-              href="https://wa.me/962781254771" 
-              target="_blank" 
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              target="_blank"
               rel="noopener noreferrer"
               className="p-2 text-slate-400 hover:text-primary transition-colors"
             >
               <MessageCircle className="w-4 h-4" />
             </a>
           </div>
-          
+
           {user ? (
             <div className="flex items-center gap-1">
-              <Link 
-                to="/profile" 
+              <Link
+                to="/profile"
                 className="p-2.5 text-slate-600 hover:text-primary transition-colors bg-slate-50 rounded-2xl border border-slate-100"
                 title="الملف الشخصي"
               >
                 <User className="w-5 h-5" />
               </Link>
               {isAdmin && (
-                <Link 
-                  to="/admin" 
+                <Link
+                  to="/admin"
                   className="p-2.5 text-slate-600 hover:text-primary transition-colors"
                   title="لوحة التحكم"
                 >
                   <LayoutDashboard className="w-5 h-5" />
                 </Link>
               )}
-              <button 
+              <button
                 onClick={handleLogout}
                 className="p-2.5 text-slate-600 hover:text-red-500 transition-colors"
                 title="تسجيل الخروج"
@@ -77,8 +78,8 @@ export const Navbar: React.FC = () => {
         {/* Center: Search Bar (New) */}
         <div className="flex-grow max-w-md hidden md:block">
           <form onSubmit={handleSearch} className="relative group">
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="ابحث عن الخدمة التي تريدها..."
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-2.5 pr-12 pl-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-sm"
               value={searchQuery}

@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search, ShoppingCart, CheckCircle2, XCircle, AlertCircle, Zap, ChevronLeft, ChevronRight, TrendingUp, Clock, Loader2, ListTree, ArrowUpRight } from 'lucide-react';
 import { sendOrderNotificationToWhatsApp } from '../services/whatsapp';
 import { updateBalance, createTransaction, getUser as getDCUser } from '../services/dataconnect';
+import { useSearchParams } from 'react-router-dom';
+import { WHATSAPP_NUMBER } from '../constants';
 
 enum OperationType {
   CREATE = 'create',
@@ -16,8 +18,6 @@ enum OperationType {
   GET = 'get',
   WRITE = 'write',
 }
-
-import { useSearchParams } from 'react-router-dom';
 
 export const Home: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -109,7 +109,7 @@ export const Home: React.FC = () => {
       await setDoc(doc(ordersRef), orderData);
 
       sendOrderNotificationToWhatsApp(orderModal.service.name, playerAppId, user.email!);
-      
+
       // Refresh local profile balance
       await refreshProfile();
       setOrderStatus({ type: 'success', message: 'تم تقديم الطلب! سيتم تنفيذه قريباً.' });
@@ -150,26 +150,25 @@ export const Home: React.FC = () => {
               <ListTree className="w-6 h-6 text-primary" />
               الأصناف
             </h3>
-            
-              <div className="relative group">
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-                <input 
-                  type="text"
-                  placeholder="بحث..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-xs"
-                />
-              </div>
+
+            <div className="relative group">
+              <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+              <input
+                type="text"
+                placeholder="بحث..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-xs"
+              />
+            </div>
 
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-              <button 
+              <button
                 onClick={() => setSelectedCategory('all')}
-                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${
-                  selectedCategory === 'all' 
-                  ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
-                }`}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${selectedCategory === 'all'
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                  }`}
               >
                 <span>الكل</span>
                 <ArrowUpRight className="w-4 h-4 opacity-50" />
@@ -178,11 +177,10 @@ export const Home: React.FC = () => {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${
-                    selectedCategory === cat.id 
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                    : 'text-slate-600 hover:bg-slate-50 border border-transparent'
-                  }`}
+                  className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${selectedCategory === cat.id
+                      ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                      : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                    }`}
                 >
                   <span>{cat.name}</span>
                   <ArrowUpRight className="w-4 h-4 opacity-50" />
@@ -200,9 +198,9 @@ export const Home: React.FC = () => {
                 <p className="text-xs font-black text-slate-900 uppercase tracking-widest">تحتاج مساعدة؟</p>
               </div>
               <p className="text-xs text-slate-500 font-medium leading-relaxed">فريق الدعم الفني متاح دائماً لمساعدتك في عمليات الشحن.</p>
-              <a 
-                href="https://wa.me/962781254771" 
-                target="_blank" 
+              <a
+                href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 bg-white border border-slate-200 rounded-xl text-primary font-black text-xs hover:bg-primary hover:text-white transition-all"
               >
@@ -218,9 +216,9 @@ export const Home: React.FC = () => {
       <div className="flex-grow space-y-12">
         {/* Hero Section */}
         <section className="relative h-[450px] rounded-[3.5rem] overflow-hidden group shadow-2xl shadow-primary/10">
-          <img 
-            src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&q=80" 
-            alt="Hero" 
+          <img
+            src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&q=80"
+            alt="Hero"
             className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             referrerPolicy="no-referrer"
           />
@@ -241,7 +239,7 @@ export const Home: React.FC = () => {
               <p className="text-white/70 font-medium text-lg leading-relaxed">
                 نشامى بلس هي المنصة الأسرع والأكثر أماناً لشحن شدات ببجي، جواكر، لاما شات، والعديد من الخدمات الرقمية الأخرى في الأردن.
               </p>
-              <button 
+              <button
                 onClick={() => {
                   const el = document.getElementById('services');
                   el?.scrollIntoView({ behavior: 'smooth' });
@@ -264,12 +262,12 @@ export const Home: React.FC = () => {
             </h2>
             <p className="text-slate-500 font-medium text-lg">اختر الخدمة التي تريد شحنها الآن</p>
           </div>
-          
+
           <div className="relative w-full md:w-96 group">
             <Search className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
-            <input 
-              type="text" 
-              placeholder="ابحث عن خدمة..." 
+            <input
+              type="text"
+              placeholder="ابحث عن خدمة..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pr-14 pl-6 py-4 bg-white border border-slate-200 rounded-3xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-sm shadow-sm"
@@ -297,9 +295,9 @@ export const Home: React.FC = () => {
                 className="glass-card group rounded-[3rem] overflow-hidden border border-white/50 hover:border-primary/30 transition-all duration-500 flex flex-col h-full"
               >
                 <div className="aspect-[16/11] overflow-hidden relative">
-                  <img 
-                    src={service.imageUrl || `https://picsum.photos/seed/${service.name}/800/550`} 
-                    alt={service.name} 
+                  <img
+                    src={service.imageUrl || `https://picsum.photos/seed/${service.name}/800/550`}
+                    alt={service.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     referrerPolicy="no-referrer"
                   />
@@ -323,7 +321,7 @@ export const Home: React.FC = () => {
                     </p>
                   </div>
                   <div className="mt-auto pt-6">
-                    <button 
+                    <button
                       onClick={() => setOrderModal({ show: true, service })}
                       className="w-full py-5 bg-slate-50 group-hover:bg-primary group-hover:text-white group-hover:shadow-xl group-hover:shadow-primary/30 rounded-[1.5rem] text-sm font-black text-slate-600 transition-all flex items-center justify-center gap-3 active:scale-95"
                     >
@@ -367,9 +365,8 @@ export const Home: React.FC = () => {
                 </div>
 
                 {orderStatus.type && orderStatus.type !== 'processing' ? (
-                  <div className={`p-6 rounded-2xl flex flex-col items-center text-center gap-3 ${
-                    orderStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                  }`}>
+                  <div className={`p-6 rounded-2xl flex flex-col items-center text-center gap-3 ${orderStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                    }`}>
                     {orderStatus.type === 'success' ? (
                       <CheckCircle2 className="w-12 h-12" />
                     ) : (
