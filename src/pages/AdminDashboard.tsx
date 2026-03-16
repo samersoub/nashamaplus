@@ -14,7 +14,7 @@ enum OperationType {
 }
 import { Plus, Trash2, Check, X, Loader2, Package, Wallet, ListTree, Users, ArrowUpRight, Search, BarChart3, TrendingUp, Calendar, Eye, Shield, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { updateBalance, listUsers, UserDC } from '../services/dataconnect';
+import { updateBalance, listUsers, getUser, UserDC } from '../services/dataconnect';
 
 interface DailyStats {
   id: string;
@@ -57,7 +57,7 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     const unsubUsers = onSnapshot(collection(db, 'users'), (s) => {
-      setAllUsers(s.docs.map(d => ({ id: d.id, ...d.data() } as UserDC)));
+      setAllUsers(s.docs.map(d => ({ uid: d.id, ...d.data() } as UserDC)));
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'users');
     });
@@ -174,7 +174,7 @@ export const AdminDashboard: React.FC = () => {
 
   const handleUpdateRole = async (user: UserDC, newRole: 'user' | 'moderator' | 'admin') => {
     try {
-      await updateDoc(doc(db, 'users', user.id), { role: newRole });
+      await updateDoc(doc(db, 'users', user.uid), { role: newRole });
     } catch (error) {
       console.error('Error updating user role:', error);
     }
@@ -183,12 +183,11 @@ export const AdminDashboard: React.FC = () => {
   const handleApproveDeposit = async (deposit: Deposit) => {
     try {
       // Update balance in Data Connect
-      const user = allUsers.find(u => u.id === deposit.userId);
+      const user = allUsers.find(u => u.uid === deposit.userId);
       if (user) {
         await updateBalance(deposit.userId, user.balance + deposit.amount);
       } else {
         // Fallback if user not in list
-        const { getUser } = await import('../services/dataconnect');
         const dcUser = await getUser(deposit.userId);
         if (dcUser) {
           await updateBalance(deposit.userId, dcUser.balance + deposit.amount);
@@ -220,8 +219,7 @@ export const AdminDashboard: React.FC = () => {
 
     setIsTopupLoading(true);
     try {
-      await updateBalance(topupModal.user.id, topupModal.user.balance + parseFloat(topupAmount));
-      await fetchData();
+      await updateBalance(topupModal.user.uid, topupModal.user.balance + parseFloat(topupAmount));
       setTopupModal({ show: false, user: null });
       setTopupAmount('');
       alert('تم شحن الرصيد بنجاح!');
@@ -560,12 +558,12 @@ export const AdminDashboard: React.FC = () => {
         
         {/* Mobile View: Cards */}
         <div className="md:hidden divide-y divide-slate-100">
-          {allUsers.filter(u => (u.username || '').toLowerCase().includes(userSearch.toLowerCase()) || (u.email || '').toLowerCase().includes(userSearch.toLowerCase())).map(user => (
-            <div key={user.id} className="p-6 space-y-4">
+          {allUsers.filter(u => (u.displayName || '').toLowerCase().includes(userSearch.toLowerCase()) || (u.email || '').toLowerCase().includes(userSearch.toLowerCase())).map(user => (
+            <div key={user.uid} className="p-6 space-y-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="font-black text-slate-900">{user.username}</p>
-                  <p className="text-[10px] text-slate-400 font-mono">{user.id}</p>
+                  <p className="font-black text-slate-900">{user.displayName}</p>
+                  <p className="text-[10px] text-slate-400 font-mono">{user.uid}</p>
                   <p className="text-xs text-slate-500 mt-1">{user.email}</p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -628,11 +626,11 @@ export const AdminDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {allUsers.filter(u => (u.username || '').toLowerCase().includes(userSearch.toLowerCase()) || (u.email || '').toLowerCase().includes(userSearch.toLowerCase())).map(user => (
-                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+              {allUsers.filter(u => (u.displayName || '').toLowerCase().includes(userSearch.toLowerCase()) || (u.email || '').toLowerCase().includes(userSearch.toLowerCase())).map(user => (
+                <tr key={user.uid} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-8 py-4">
-                    <p className="font-black text-slate-900">{user.username}</p>
-                    <p className="text-[10px] text-slate-400 font-mono">{user.id}</p>
+                    <p className="font-black text-slate-900">{user.displayName}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">{user.uid}</p>
                   </td>
                   <td className="px-8 py-4 text-sm text-slate-600">{user.email}</td>
                   <td className="px-8 py-4">
@@ -849,7 +847,7 @@ export const AdminDashboard: React.FC = () => {
             >
               <div className="space-y-2">
                 <h3 className="text-2xl font-black text-slate-900">شحن رصيد يدوي</h3>
-                <p className="text-slate-500 font-medium">أنت الآن تقوم بشحن رصيد للمستخدم: <span className="text-primary font-bold">{topupModal.user.username}</span></p>
+                <p className="text-slate-500 font-medium">أنت الآن تقوم بشحن رصيد للمستخدم: <span className="text-primary font-bold">{topupModal.user.displayName}</span></p>
               </div>
 
               <div className="bg-slate-50 p-6 rounded-3xl space-y-2">

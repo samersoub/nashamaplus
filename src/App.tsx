@@ -125,11 +125,11 @@ export default function App() {
       const dcUser = await getDCUser(user.uid);
       if (dcUser) {
         setProfile({
-          uid: dcUser.id,
+          uid: dcUser.uid,
           email: dcUser.email,
-          displayName: dcUser.username,
+          displayName: dcUser.displayName,
           balance: dcUser.balance,
-          role: user.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
+          role: user.email === 'sameralsoub@gmail.com' ? 'admin' : (dcUser.role || 'user'),
           createdAt: new Date().toISOString(), // Fallback
         });
       }

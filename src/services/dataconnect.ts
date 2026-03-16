@@ -2,19 +2,19 @@ import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query } from 'fire
 import { db } from '../firebase';
 
 export interface UserDC {
-  id: string;
-  username: string;
+  uid: string;
+  displayName: string;
   email: string;
   balance: number;
   role: 'user' | 'moderator' | 'admin';
   phoneNumber?: string;
 }
 
-export const createUser = async (id: string, username: string, email: string, phoneNumber?: string) => {
-  const userRef = doc(db, 'users', id);
+export const createUser = async (uid: string, displayName: string, email: string, phoneNumber?: string) => {
+  const userRef = doc(db, 'users', uid);
   return setDoc(userRef, {
-    id,
-    username,
+    uid,
+    displayName,
     email,
     balance: 0,
     role: 'user',
@@ -23,8 +23,8 @@ export const createUser = async (id: string, username: string, email: string, ph
   });
 };
 
-export const getUser = async (id: string) => {
-  const userRef = doc(db, 'users', id);
+export const getUser = async (uid: string) => {
+  const userRef = doc(db, 'users', uid);
   const userSnap = await getDoc(userRef);
   if (userSnap.exists()) {
     return userSnap.data() as UserDC;
@@ -38,8 +38,8 @@ export const listUsers = async () => {
   return querySnapshot.docs.map(doc => doc.data() as UserDC);
 };
 
-export const updateBalance = async (id: string, newBalance: number) => {
-  const userRef = doc(db, 'users', id);
+export const updateBalance = async (uid: string, newBalance: number) => {
+  const userRef = doc(db, 'users', uid);
   return updateDoc(userRef, { balance: newBalance });
 };
 

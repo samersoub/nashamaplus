@@ -18,6 +18,9 @@ service cloud.firestore {
     //
     // Collection: deposits
     // Fields: userId, userEmail, amount, status, createdAt
+    //
+    // Collection: transactions
+    // Fields: id, userId, amount, transactionType, status, createdAt
     // ===============================================================
 
     // Helper Functions
@@ -66,9 +69,14 @@ service cloud.firestore {
     }
 
     function isValidDeposit(data) {
-      return data.keys().hasAll(['userId', 'amount', 'status', 'createdAt']) &&
+      return data.keys().hasAll(['userId', 'userEmail', 'amount', 'status', 'createdAt']) &&
              data.userId == request.auth.uid &&
              data.status == 'waiting';
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['id', 'userId', 'amount', 'transactionType', 'status', 'createdAt']) &&
+             data.userId == request.auth.uid;
     }
 
     // Rules
@@ -99,8 +107,7 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
       allow read: if hasAdminAccess();
-      allow create: if isAuthenticated() && isValidOrder(request.resource.data) && 
-                    request.resource.data.createdAt == request.time;
+      allow create: if isAuthenticated() && isValidOrder(request.resource.data);
       allow update: if hasAdminAccess();
       allow delete: if false;
     }
@@ -108,6 +115,13 @@ service cloud.firestore {
     match /deposits/{depositId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || hasAdminAccess());
       allow create: if isAuthenticated() && isValidDeposit(request.resource.data);
+      allow update: if hasAdminAccess();
+      allow delete: if false;
+    }
+
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || hasAdminAccess());
+      allow create: if isAuthenticated() && isValidTransaction(request.resource.data);
       allow update: if hasAdminAccess();
       allow delete: if false;
     }
