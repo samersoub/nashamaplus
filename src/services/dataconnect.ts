@@ -1,5 +1,5 @@
-import { executeMutation, executeQuery, mutationRef, queryRef } from 'firebase/data-connect';
-import { dc } from '../firebase';
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export interface UserDC {
   id: string;
@@ -10,29 +10,35 @@ export interface UserDC {
 }
 
 export const createUser = async (id: string, username: string, email: string, phoneNumber?: string) => {
-  return executeMutation(mutationRef(dc, 'CreateUser', {
+  const userRef = doc(db, 'users', id);
+  return setDoc(userRef, {
     id,
     username,
     email,
     balance: 0,
-    phoneNumber: phoneNumber || null
-  }));
+    phoneNumber: phoneNumber || null,
+    createdAt: new Date().toISOString()
+  });
 };
 
 export const getUser = async (id: string) => {
-  const result = await executeQuery(queryRef(dc, 'GetUser', { id }));
-  const data = result.data as any;
-  return data.user as UserDC | null;
+  const userRef = doc(db, 'users', id);
+  const userSnap = await getDoc(userRef);
+  if (userSnap.exists()) {
+    return userSnap.data() as UserDC;
+  }
+  return null;
 };
 
 export const listUsers = async () => {
-  const result = await executeQuery(queryRef(dc, 'ListUsers'));
-  const data = result.data as any;
-  return data.users as UserDC[];
+  const usersRef = collection(db, 'users');
+  const querySnapshot = await getDocs(query(usersRef));
+  return querySnapshot.docs.map(doc => doc.data() as UserDC);
 };
 
 export const updateBalance = async (id: string, newBalance: number) => {
-  return executeMutation(mutationRef(dc, 'UpdateBalance', { id, newBalance }));
+  const userRef = doc(db, 'users', id);
+  return updateDoc(userRef, { balance: newBalance });
 };
 
 export const createTransaction = async (
@@ -42,11 +48,13 @@ export const createTransaction = async (
   status: string
 ) => {
   const id = crypto.randomUUID();
-  return executeMutation(mutationRef(dc, 'CreateTransaction', {
+  const transactionRef = doc(db, 'transactions', id);
+  return setDoc(transactionRef, {
     id,
     userId,
     amount,
     transactionType,
-    status
-  }));
+    status,
+    createdAt: new Date().toISOString()
+  });
 };

@@ -4,22 +4,22 @@ import { db } from '../firebase';
 import { useAuth } from '../App';
 import { Order, Deposit } from '../types';
 import { Wallet, History, Send, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowUpRight, MessageCircle } from 'lucide-react';
+import { sendDepositRequestToWhatsApp } from '../services/whatsapp';
 import { motion } from 'motion/react';
 import { createTransaction } from '../services/dataconnect';
-import { WHATSAPP_NUMBER } from '../constants';
 
 export const Profile: React.FC = () => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [loading, setLoading] = useState(true);
-
+  
   const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositSuccess, setDepositSuccess] = useState(false);
 
   useEffect(() => {
-    refreshProfile();
+    // Profile is refreshed automatically via onSnapshot in App.tsx
   }, []);
 
   useEffect(() => {
@@ -78,32 +78,20 @@ export const Profile: React.FC = () => {
       };
 
       await addDoc(collection(db, 'deposits'), depositData);
-
+      
       setDepositSuccess(true);
       const amountToSubmit = depositAmount;
       setDepositAmount('');
-
-      // Construct WhatsApp URL and redirect
-      const message = `مرحباً أدمن، أود إيداع ${amountToSubmit} دينار في محفظتي في نشامى بلس. بريدي الإلكتروني هو: ${profile.email}`;
-      const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-
-      // Direct open to avoid popup blockers
-      window.open(whatsappUrl, '_blank');
-
-      await refreshProfile();
-      setTimeout(() => setDepositSuccess(false), 15000);
+      
+      // Redirect to WhatsApp
+      sendDepositRequestToWhatsApp(parseFloat(amountToSubmit), profile.email);
+      
+      setTimeout(() => setDepositSuccess(false), 30000);
     } catch (error) {
       console.error('Deposit request failed:', error);
     } finally {
       setIsDepositing(false);
     }
-  };
-
-  const parseDate = (date: any) => {
-    if (!date) return new Date();
-    if (typeof date === 'string') return new Date(date);
-    if (date?.toDate) return date.toDate();
-    return new Date(date);
   };
 
   if (loading) {
@@ -119,69 +107,69 @@ export const Profile: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Wallet Section */}
         <div className="md:col-span-1 space-y-6">
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-br from-primary via-primary-dark to-accent p-8 rounded-[2.5rem] text-white shadow-2xl shadow-primary/30 relative overflow-hidden"
+            className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl shadow-slate-200/50 relative overflow-hidden group"
           >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
-            <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-accent/20 rounded-full blur-3xl" />
-
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-50" />
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000" />
+            
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-10">
-                <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-                  <Wallet className="w-6 h-6" />
+                <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
+                  <Wallet className="w-6 h-6 text-primary" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 bg-white/10 px-3 py-1 rounded-full">المحفظة</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 bg-white/5 px-3 py-1 rounded-full">المحفظة</span>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium opacity-70">الرصيد المتاح</p>
+                <p className="text-xs font-bold text-slate-400">الرصيد المتاح</p>
                 <div className="flex items-baseline gap-2">
-                  <h2 className="text-5xl font-black font-display tracking-tight">{profile?.balance.toFixed(2)}</h2>
-                  <span className="text-lg font-bold opacity-80">دينار</span>
+                  <h2 className="text-5xl font-black tracking-tight">{profile?.balance.toFixed(2)}</h2>
+                  <span className="text-sm font-bold text-primary">دينار</span>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          <div className="glass-card p-8 rounded-[2.5rem] space-y-6 border border-white/50">
+          <div className="bg-white p-8 rounded-[3rem] space-y-6 border border-slate-100 shadow-xl shadow-slate-200/50">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-xl">
                 <Send className="w-5 h-5 text-primary" />
               </div>
               <h3 className="font-black text-slate-900">شحن الرصيد</h3>
             </div>
-
-            <p className="text-xs text-slate-500 leading-relaxed">أدخل المبلغ الذي ترغب في شحنه، وسيتم تحويلك للواتساب لإتمام العملية.</p>
-
+            
+            <p className="text-xs text-slate-500 leading-relaxed font-medium">أدخل المبلغ الذي ترغب في شحنه، وسيتم تحويلك للواتساب لإتمام العملية.</p>
+            
             <form onSubmit={handleDepositRequest} className="space-y-4">
               <div className="relative group">
-                <input
+                <input 
                   required
-                  type="number"
+                  type="number" 
                   step="0.01"
                   placeholder="0.00"
-                  className="w-full pr-4 pl-14 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-lg"
+                  className="w-full pr-4 pl-14 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-black text-lg"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
                 />
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">دينار</span>
               </div>
-              <button
+              <button 
                 disabled={isDepositing}
-                className="w-full btn-primary py-4 rounded-2xl flex items-center justify-center gap-3 font-black text-lg shadow-lg shadow-primary/25 active:scale-95 transition-transform"
+                className="w-full py-4 bg-slate-900 text-white hover:bg-primary rounded-2xl flex items-center justify-center gap-3 font-black text-sm shadow-lg active:scale-95 transition-all"
               >
-                {isDepositing ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                {isDepositing ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                   <>
                     <span>طلب شحن</span>
-                    <ArrowUpRight className="w-5 h-5" />
+                    <ArrowUpRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
 
             {depositSuccess && (
-              <motion.div
+              <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
@@ -190,8 +178,8 @@ export const Profile: React.FC = () => {
                   <CheckCircle2 className="w-5 h-5 shrink-0" />
                   <span>تم إرسال الطلب! جاري التحويل إلى واتساب...</span>
                 </div>
-                <a
-                  href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`مرحباً أدمن، أود إيداع ${submittedAmount} دينار في محفظتي في نشامى بلس. بريدي الإلكتروني هو: ${profile?.email}`)}`}
+                <a 
+                  href={`https://wa.me/962781254771?text=${encodeURIComponent(`مرحباً أدمن، أود إيداع ${submittedAmount} دينار في محفظتي في نشامى بلس. بريدي الإلكتروني هو: ${profile?.email}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full py-4 bg-green-600 text-white rounded-2xl font-black text-sm hover:bg-green-700 transition-all shadow-lg shadow-green-200"
@@ -228,13 +216,14 @@ export const Profile: React.FC = () => {
                 orders.map(order => (
                   <div key={order.id} className="p-6 flex items-center justify-between hover:bg-slate-50/80 transition-all group">
                     <div className="flex items-center gap-5">
-                      <div className={`p-3 rounded-2xl transition-transform group-hover:scale-110 ${order.status === 'completed' ? 'bg-green-100 text-green-600' :
-                        order.status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                          'bg-red-100 text-red-600'
-                        }`}>
-                        {order.status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> :
-                          order.status === 'pending' ? <Clock className="w-6 h-6" /> :
-                            <XCircle className="w-6 h-6" />}
+                      <div className={`p-3 rounded-2xl transition-transform group-hover:scale-110 ${
+                        order.status === 'completed' ? 'bg-green-100 text-green-600' : 
+                        order.status === 'pending' ? 'bg-amber-100 text-amber-600' : 
+                        'bg-red-100 text-red-600'
+                      }`}>
+                        {order.status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> : 
+                         order.status === 'pending' ? <Clock className="w-6 h-6" /> : 
+                         <XCircle className="w-6 h-6" />}
                       </div>
                       <div>
                         <p className="font-black text-slate-900">{order.serviceName}</p>
@@ -246,7 +235,7 @@ export const Profile: React.FC = () => {
                     </div>
                     <div className="text-left">
                       <p className="font-black text-slate-900 text-lg">-{order.amount} <span className="text-xs">دينار</span></p>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">{parseDate(order.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1">{new Date(order.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
                     </div>
                   </div>
                 ))
@@ -275,27 +264,29 @@ export const Profile: React.FC = () => {
                 deposits.map(deposit => (
                   <div key={deposit.id} className="p-6 flex items-center justify-between hover:bg-slate-50/80 transition-all group">
                     <div className="flex items-center gap-5">
-                      <div className={`p-3 rounded-2xl transition-transform group-hover:scale-110 ${deposit.status === 'approved' ? 'bg-green-100 text-green-600' :
-                        deposit.status === 'waiting' ? 'bg-amber-100 text-amber-600' :
-                          'bg-red-100 text-red-600'
-                        }`}>
-                        {deposit.status === 'approved' ? <CheckCircle2 className="w-6 h-6" /> :
-                          deposit.status === 'waiting' ? <Clock className="w-6 h-6" /> :
-                            <XCircle className="w-6 h-6" />}
+                      <div className={`p-3 rounded-2xl transition-transform group-hover:scale-110 ${
+                        deposit.status === 'approved' ? 'bg-green-100 text-green-600' : 
+                        deposit.status === 'waiting' ? 'bg-amber-100 text-amber-600' : 
+                        'bg-red-100 text-red-600'
+                      }`}>
+                        {deposit.status === 'approved' ? <CheckCircle2 className="w-6 h-6" /> : 
+                         deposit.status === 'waiting' ? <Clock className="w-6 h-6" /> : 
+                         <XCircle className="w-6 h-6" />}
                       </div>
                       <div>
                         <p className="font-black text-slate-900">طلب شحن رصيد</p>
-                        <p className={`text-[10px] font-black uppercase mt-1 px-2 py-0.5 rounded-md inline-block ${deposit.status === 'waiting' ? 'bg-amber-50 text-amber-600' :
-                          deposit.status === 'approved' ? 'bg-green-50 text-green-600' :
-                            'bg-red-50 text-red-600'
-                          }`}>
+                        <p className={`text-[10px] font-black uppercase mt-1 px-2 py-0.5 rounded-md inline-block ${
+                          deposit.status === 'waiting' ? 'bg-amber-50 text-amber-600' : 
+                          deposit.status === 'approved' ? 'bg-green-50 text-green-600' : 
+                          'bg-red-50 text-red-600'
+                        }`}>
                           {deposit.status === 'waiting' ? 'قيد الانتظار' : deposit.status === 'approved' ? 'تمت الموافقة' : 'مرفوض'}
                         </p>
                       </div>
                     </div>
                     <div className="text-left">
                       <p className="font-black text-slate-900 text-lg">+{deposit.amount} <span className="text-xs">دينار</span></p>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">{parseDate(deposit.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1">{new Date(deposit.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
                     </div>
                   </div>
                 ))

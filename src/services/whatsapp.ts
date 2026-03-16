@@ -5,8 +5,8 @@ export const sendDepositRequestToWhatsApp = (amount: number, userEmail: string) 
   const encodedMessage = encodeURIComponent(message);
   const url = `https://wa.me/${ADMIN_PHONE}?text=${encodedMessage}`;
   
-  // Direct redirection is more reliable after async tasks
-  window.location.href = url;
+  // Use window.open for better reliability in iframe/mobile environments
+  window.open(url, '_blank');
 };
 
 export const sendOrderNotificationToWhatsApp = (serviceName: string, playerAppId: string, userEmail: string) => {
@@ -14,5 +14,5 @@ export const sendOrderNotificationToWhatsApp = (serviceName: string, playerAppId
   const encodedMessage = encodeURIComponent(message);
   const url = `https://wa.me/${ADMIN_PHONE}?text=${encodedMessage}`;
 
-  window.location.href = url;
+  window.open(url, '_blank');
 };

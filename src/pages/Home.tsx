@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, runTransaction, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth, handleFirestoreError } from '../App';
 import { Service, Category, Order } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, ShoppingCart, CheckCircle2, XCircle, AlertCircle, Zap, ChevronLeft, ChevronRight, TrendingUp, Clock, Loader2, ListTree, ArrowUpRight } from 'lucide-react';
+import { Search, ShoppingCart, CheckCircle2, XCircle, AlertCircle, Zap, ChevronLeft, ChevronRight, TrendingUp, Clock, Loader2, ListTree, ArrowUpRight, MessageCircle } from 'lucide-react';
 import { sendOrderNotificationToWhatsApp } from '../services/whatsapp';
 import { updateBalance, createTransaction, getUser as getDCUser } from '../services/dataconnect';
-import { useSearchParams } from 'react-router-dom';
-import { WHATSAPP_NUMBER } from '../constants';
 
 enum OperationType {
   CREATE = 'create',
@@ -18,6 +16,8 @@ enum OperationType {
   GET = 'get',
   WRITE = 'write',
 }
+
+import { useSearchParams } from 'react-router-dom';
 
 export const Home: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -45,7 +45,7 @@ export const Home: React.FC = () => {
   const [orderModal, setOrderModal] = useState<{ show: boolean; service: Service | null }>({ show: false, service: null });
   const [playerAppId, setPlayerAppId] = useState('');
   const [orderStatus, setOrderStatus] = useState<{ type: 'success' | 'error' | 'processing' | null; message: string }>({ type: null, message: '' });
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
 
   useEffect(() => {
     const unsubServices = onSnapshot(query(collection(db, 'services'), orderBy('createdAt', 'desc')), (snapshot) => {
@@ -109,9 +109,7 @@ export const Home: React.FC = () => {
       await setDoc(doc(ordersRef), orderData);
 
       sendOrderNotificationToWhatsApp(orderModal.service.name, playerAppId, user.email!);
-
-      // Refresh local profile balance
-      await refreshProfile();
+      
       setOrderStatus({ type: 'success', message: 'تم تقديم الطلب! سيتم تنفيذه قريباً.' });
       setTimeout(() => {
         setOrderModal({ show: false, service: null });
@@ -141,200 +139,238 @@ export const Home: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 pb-12">
-      {/* Sidebar - Categories & Info */}
-      <aside className="lg:w-80 shrink-0 space-y-6">
-        <div className="glass-card p-8 rounded-[2.5rem] border border-white/50 sticky top-24 space-y-8">
-          <div className="space-y-6">
-            <h3 className="text-lg font-black text-slate-900 flex items-center gap-3">
-              <ListTree className="w-6 h-6 text-primary" />
-              الأصناف
-            </h3>
-
-            <div className="relative group">
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-              <input
-                type="text"
-                placeholder="بحث..."
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-xs"
-              />
+    <div className="space-y-12 pb-20">
+      {/* Hero Section - Modern & Immersive */}
+      <section className="relative h-[450px] lg:h-[550px] rounded-[2.5rem] lg:rounded-[3.5rem] overflow-hidden group shadow-2xl shadow-primary/10">
+        <img 
+          src="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80" 
+          alt="Hero" 
+          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex flex-col justify-end p-8 lg:p-12">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl space-y-6"
+          >
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="bg-primary/20 backdrop-blur-md border border-primary/30 px-4 py-1.5 rounded-full text-[10px] font-black text-primary uppercase tracking-widest">عرض خاص</span>
+              <span className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full text-[10px] font-black text-white uppercase tracking-widest">تسليم فوري</span>
             </div>
-
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-              <button
-                onClick={() => setSelectedCategory('all')}
-                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${selectedCategory === 'all'
-                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
-                  }`}
-              >
-                <span>الكل</span>
-                <ArrowUpRight className="w-4 h-4 opacity-50" />
-              </button>
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${selectedCategory === cat.id
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'text-slate-600 hover:bg-slate-50 border border-transparent'
-                    }`}
-                >
-                  <span>{cat.name}</span>
-                  <ArrowUpRight className="w-4 h-4 opacity-50" />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-slate-100 space-y-6">
-            <div className="bg-slate-50 rounded-3xl p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-xl">
-                  <Zap className="w-4 h-4 text-primary" />
-                </div>
-                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">تحتاج مساعدة؟</p>
-              </div>
-              <p className="text-xs text-slate-500 font-medium leading-relaxed">فريق الدعم الفني متاح دائماً لمساعدتك في عمليات الشحن.</p>
-              <a
-                href={`https://wa.me/${WHATSAPP_NUMBER}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3 bg-white border border-slate-200 rounded-xl text-primary font-black text-xs hover:bg-primary hover:text-white transition-all"
-              >
-                تواصل معنا عبر واتساب
-                <ArrowUpRight className="w-3 h-3" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-grow space-y-12">
-        {/* Hero Section */}
-        <section className="relative h-[450px] rounded-[3.5rem] overflow-hidden group shadow-2xl shadow-primary/10">
-          <img
-            src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&q=80"
-            alt="Hero"
-            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-12">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-xl space-y-6"
-            >
-              <div className="flex items-center gap-3">
-                <span className="bg-primary px-4 py-1.5 rounded-full text-[10px] font-black text-white uppercase tracking-widest">عرض خاص</span>
-                <span className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-black text-white uppercase tracking-widest">آمن 100%</span>
-              </div>
-              <h1 className="text-6xl font-black text-white leading-[1.1] tracking-tighter">
-                اشحن ألعابك المفضلة <br />
-                <span className="text-primary italic">بأفضل الأسعار</span>
-              </h1>
-              <p className="text-white/70 font-medium text-lg leading-relaxed">
-                نشامى بلس هي المنصة الأسرع والأكثر أماناً لشحن شدات ببجي، جواكر، لاما شات، والعديد من الخدمات الرقمية الأخرى في الأردن.
-              </p>
-              <button
+            <h1 className="text-4xl lg:text-6xl font-black text-white leading-[1.1] tracking-tighter">
+              اشحن ألعابك المفضلة <br />
+              <span className="text-primary italic">بأفضل الأسعار</span>
+            </h1>
+            <p className="text-white/70 font-medium text-base lg:text-lg leading-relaxed max-w-lg">
+              نشامى بلس هي وجهتك الأولى في الأردن لشحن شدات ببجي، جواهر فري فاير، وبطاقات الهدايا العالمية.
+            </p>
+            <div className="flex flex-wrap gap-4 pt-2">
+              <button 
                 onClick={() => {
-                  const el = document.getElementById('services');
+                  const el = document.getElementById('categories');
                   el?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="btn-primary w-fit px-10 py-4 text-lg"
+                className="bg-primary hover:bg-primary-dark text-white px-8 py-3.5 rounded-2xl font-black text-sm transition-all flex items-center gap-2 shadow-lg shadow-primary/25 active:scale-95"
               >
                 ابدأ الشحن الآن
-                <ArrowUpRight className="w-5 h-5" />
+                <ArrowUpRight className="w-4 h-4" />
               </button>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Search & Filter Bar */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6" id="services">
-          <div className="space-y-1">
-            <h2 className="text-4xl font-black text-slate-900 flex items-center gap-4">
-              <Zap className="w-10 h-10 text-primary" />
-              الخدمات المتاحة
-            </h2>
-            <p className="text-slate-500 font-medium text-lg">اختر الخدمة التي تريد شحنها الآن</p>
-          </div>
-
-          <div className="relative w-full md:w-96 group">
-            <Search className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
-            <input
-              type="text"
-              placeholder="ابحث عن خدمة..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pr-14 pl-6 py-4 bg-white border border-slate-200 rounded-3xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-sm shadow-sm"
-            />
-          </div>
+              <a 
+                href="https://wa.me/962781254771"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 px-8 py-3.5 rounded-2xl font-black text-sm transition-all flex items-center gap-2 active:scale-95"
+              >
+                تواصل معنا
+              </a>
+            </div>
+          </motion.div>
         </div>
+      </section>
+
+      {/* Featured Categories Grid - Circular Icons */}
+      <section id="categories" className="space-y-8">
+        <div className="flex flex-col items-center text-center space-y-2">
+          <h2 className="text-2xl lg:text-3xl font-black text-slate-900">الأصناف المميزة</h2>
+          <div className="w-12 h-1 bg-primary rounded-full" />
+        </div>
+
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-6 lg:gap-8">
+          <button 
+            onClick={() => setSelectedCategory('all')}
+            className="group flex flex-col items-center gap-4"
+          >
+            <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center transition-all duration-300 ${
+              selectedCategory === 'all' 
+              ? 'bg-primary shadow-xl shadow-primary/30 scale-110' 
+              : 'bg-white border border-slate-100 hover:border-primary/30 hover:shadow-lg'
+            }`}>
+              <Zap className={`w-8 h-8 lg:w-10 lg:h-10 ${selectedCategory === 'all' ? 'text-white' : 'text-primary'}`} />
+            </div>
+            <span className={`font-black text-xs lg:text-sm transition-colors ${selectedCategory === 'all' ? 'text-primary' : 'text-slate-600'}`}>الكل</span>
+          </button>
+
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => {
+                setSelectedCategory(cat.id);
+                const el = document.getElementById('services');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="group flex flex-col items-center gap-4"
+            >
+              <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-full overflow-hidden transition-all duration-300 ${
+                selectedCategory === cat.id 
+                ? 'ring-4 ring-primary ring-offset-4 scale-110 shadow-xl shadow-primary/20' 
+                : 'bg-white border border-slate-100 hover:border-primary/30 hover:shadow-lg'
+              }`}>
+                <img 
+                  src={cat.icon || `https://picsum.photos/seed/${cat.name}/200/200`} 
+                  alt={cat.name}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <span className={`font-black text-xs lg:text-sm transition-colors ${selectedCategory === cat.id ? 'text-primary' : 'text-slate-600'}`}>{cat.name}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Main Content Area with Sidebar */}
+      <div className="flex flex-col lg:flex-row gap-12" id="services">
+        {/* Sidebar */}
+        <aside className="lg:w-64 shrink-0 hidden lg:block">
+          <div className="sticky top-24 space-y-8">
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mr-2">الأصناف</h3>
+              <div className="space-y-1">
+                <button 
+                  onClick={() => setSelectedCategory('all')}
+                  className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${
+                    selectedCategory === 'all' 
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                    : 'text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>الكل</span>
+                  <Zap className="w-4 h-4 opacity-50" />
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${
+                      selectedCategory === cat.id 
+                      ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                      : 'text-slate-500 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{cat.name}</span>
+                    <ChevronLeft className="w-4 h-4 opacity-50" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 bg-slate-900 rounded-[2rem] text-white space-y-4">
+              <TrendingUp className="w-8 h-8 text-primary" />
+              <h4 className="font-black text-lg leading-tight">الأكثر طلباً اليوم</h4>
+              <p className="text-xs text-white/60 font-medium leading-relaxed">شدات ببجي موبايل وجواهر فري فاير تتصدر القائمة.</p>
+            </div>
+          </div>
+        </aside>
 
         {/* Services Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-          {filteredServices.length === 0 ? (
-            <div className="col-span-full py-20 text-center space-y-4">
-              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
-                <Search className="w-10 h-10 text-slate-300" />
-              </div>
-              <p className="text-slate-500 font-black text-xl">لم يتم العثور على خدمات تطابق بحثك</p>
+        <div className="flex-grow space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 className="text-2xl font-black text-slate-900">
+              {selectedCategory === 'all' ? 'جميع الخدمات' : categories.find(c => c.id === selectedCategory)?.name}
+            </h2>
+            <div className="relative group w-full sm:w-72">
+              <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+              <input 
+                type="text" 
+                placeholder="ابحث عن خدمة..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pr-10 pl-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary transition-all font-bold text-xs"
+              />
             </div>
-          ) : (
-            filteredServices.map((service, index) => (
-              <motion.div
-                key={service.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                whileHover={{ y: -12 }}
-                className="glass-card group rounded-[3rem] overflow-hidden border border-white/50 hover:border-primary/30 transition-all duration-500 flex flex-col h-full"
-              >
-                <div className="aspect-[16/11] overflow-hidden relative">
-                  <img
-                    src={service.imageUrl || `https://picsum.photos/seed/${service.name}/800/550`}
-                    alt={service.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute top-6 right-6">
-                    <div className="bg-white/95 backdrop-blur-md px-5 py-2.5 rounded-2xl text-base font-black text-primary shadow-2xl border border-white">
-                      {service.price} دينار
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            {filteredServices.length === 0 ? (
+              <div className="col-span-full py-20 text-center space-y-4 bg-white rounded-[3rem] border border-slate-100">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+                  <Search className="w-8 h-8 text-slate-200" />
+                </div>
+                <p className="text-slate-400 font-bold">لا توجد نتائج لبحثك</p>
+              </div>
+            ) : (
+              filteredServices.map((service, index) => (
+                <motion.div
+                  key={service.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.03 }}
+                  className="bg-white group rounded-[2.5rem] p-4 border border-slate-100 hover:border-primary/20 hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-500 flex flex-col"
+                >
+                  <div className="aspect-[4/3] rounded-[2rem] overflow-hidden relative mb-6">
+                    <img 
+                      src={service.imageUrl || `https://picsum.photos/seed/${service.name}/800/600`} 
+                      alt={service.name} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-sm font-black text-primary shadow-lg">
+                      {service.price} د.أ
                     </div>
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                </div>
-                <div className="p-8 space-y-6 flex flex-grow flex-col">
-                  <div className="space-y-3">
-                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] bg-primary/5 px-4 py-1.5 rounded-full border border-primary/10">
-                      {categories.find(c => c.id === service.categoryId)?.name || 'خدمة'}
-                    </span>
-                    <h3 className="text-2xl font-black text-slate-900 group-hover:text-primary transition-colors leading-tight">
-                      {service.name}
-                    </h3>
-                    <p className="text-sm text-slate-500 font-medium line-clamp-2 leading-relaxed">
-                      {service.description}
-                    </p>
-                  </div>
-                  <div className="mt-auto pt-6">
-                    <button
+                  <div className="px-2 pb-2 flex flex-col flex-grow space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-black text-slate-900 group-hover:text-primary transition-colors line-clamp-1">
+                        {service.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                        {service.description}
+                      </p>
+                    </div>
+                    <button 
                       onClick={() => setOrderModal({ show: true, service })}
-                      className="w-full py-5 bg-slate-50 group-hover:bg-primary group-hover:text-white group-hover:shadow-xl group-hover:shadow-primary/30 rounded-[1.5rem] text-sm font-black text-slate-600 transition-all flex items-center justify-center gap-3 active:scale-95"
+                      className="mt-auto w-full py-4 bg-slate-50 group-hover:bg-primary group-hover:text-white rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2"
                     >
-                      اطلب الآن
-                      <ArrowUpRight className="w-5 h-5" />
+                      شحن الآن
+                      <ArrowUpRight className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              </motion.div>
-            ))
-          )}
+                </motion.div>
+              ))
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Trust Badges */}
+      <section className="py-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { icon: CheckCircle2, title: 'أمان تام', desc: 'جميع معاملاتك محمية ومشفرة بأحدث التقنيات' },
+            { icon: Zap, title: 'سرعة في التنفيذ', desc: 'يتم تنفيذ طلبك خلال دقائق معدودة من الطلب' },
+            { icon: MessageCircle, title: 'دعم فني متواصل', desc: 'فريقنا متاح دائماً لمساعدتك عبر الواتساب' }
+          ].map((badge, i) => (
+            <div key={i} className="flex flex-col items-center text-center space-y-4 p-8 bg-white rounded-[2.5rem] border border-slate-100">
+              <div className="p-4 bg-primary/10 rounded-2xl">
+                <badge.icon className="w-8 h-8 text-primary" />
+              </div>
+              <h4 className="text-lg font-black text-slate-900">{badge.title}</h4>
+              <p className="text-sm text-slate-500 font-medium">{badge.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Order Modal */}
       <AnimatePresence>
@@ -365,8 +401,9 @@ export const Home: React.FC = () => {
                 </div>
 
                 {orderStatus.type && orderStatus.type !== 'processing' ? (
-                  <div className={`p-6 rounded-2xl flex flex-col items-center text-center gap-3 ${orderStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                    }`}>
+                  <div className={`p-6 rounded-2xl flex flex-col items-center text-center gap-3 ${
+                    orderStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                  }`}>
                     {orderStatus.type === 'success' ? (
                       <CheckCircle2 className="w-12 h-12" />
                     ) : (

@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, setDoc, updateDoc, increment, getDocFromServer } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { UserProfile } from './types';
 
@@ -73,7 +73,6 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
-  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -81,7 +80,6 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   isAdmin: false,
-  refreshProfile: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -98,15 +96,18 @@ export default function App() {
       const statsRef = doc(db, 'stats', today);
       
       try {
+        // Test connection using getDocFromServer as per instructions
+        // This will throw "offline" error if config is wrong
+        await getDocFromServer(doc(db, 'test', 'connection')).catch(() => {});
+
         // Use setDoc with merge to increment or create in one go
-        // This is more atomic and avoids an extra getDoc call
         await setDoc(statsRef, { 
           visitors: increment(1),
           date: today 
         }, { merge: true });
       } catch (error) {
         if (error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Firebase connection error: The client is offline. Please check your Firebase configuration in firebase-applet-config.json.");
+          console.error("Firebase connection error: The client is offline. This usually means the Firebase configuration in firebase-applet-config.json is incorrect or the project is not found.");
         } else {
           console.error('Error tracking visitor:', error);
         }
@@ -136,66 +137,61 @@ export default function App() {
   };
 
   useEffect(() => {
+    let unsubscribeProfile: (() => void) | null = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
       if (firebaseUser) {
         try {
-          // Try to get from Data Connect
-          let dcUser = await getDCUser(firebaseUser.uid);
-          
+          // Ensure user exists in Firestore
+          const dcUser = await getDCUser(firebaseUser.uid);
           if (!dcUser) {
-            // Create in Data Connect if not exists
             await createDCUser(
               firebaseUser.uid,
               firebaseUser.displayName || 'User',
               firebaseUser.email || ''
             );
-            dcUser = await getDCUser(firebaseUser.uid);
           }
 
-          if (dcUser) {
-            setProfile({
-              uid: dcUser.id,
-              email: dcUser.email,
-              displayName: dcUser.username,
-              balance: dcUser.balance,
-              role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
-              createdAt: new Date().toISOString(),
-            });
-          } else {
-            // Fallback to basic profile if DC fails
-            setProfile({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              displayName: firebaseUser.displayName || 'User',
-              balance: 0,
-              role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
-              createdAt: new Date().toISOString(),
-            });
-          }
-
-          setLoading(false);
-        } catch (error) {
-          console.error('Data Connect Auth Error:', error);
-          // Fallback on error
-          setProfile({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email || '',
-            displayName: firebaseUser.displayName || 'User',
-            balance: 0,
-            role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
-            createdAt: new Date().toISOString(),
+          // Set up real-time listener for profile
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              setProfile({
+                uid: firebaseUser.uid,
+                email: data.email,
+                displayName: data.username,
+                balance: data.balance,
+                role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
+                createdAt: data.createdAt || new Date().toISOString(),
+              });
+            }
+            setLoading(false);
+          }, (error) => {
+            console.error('Profile listener error:', error);
+            setLoading(false);
           });
+
+        } catch (error) {
+          console.error('Auth/Profile setup error:', error);
           setLoading(false);
         }
       } else {
         setProfile(null);
+        if (unsubscribeProfile) {
+          unsubscribeProfile();
+          unsubscribeProfile = null;
+        }
         setLoading(false);
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   if (loading) {
@@ -212,7 +208,7 @@ export default function App() {
   const isAdmin = profile?.role === 'admin' || (user?.email === 'sameralsoub@gmail.com' && user?.emailVerified);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin }}>
       <Router>
         <Layout>
           <Routes>
