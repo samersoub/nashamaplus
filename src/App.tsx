@@ -6,7 +6,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, getDoc, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { UserProfile } from './types';
 
@@ -90,6 +90,25 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Visitor tracking
+    const trackVisitor = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const statsRef = doc(db, 'stats', today);
+      try {
+        const statsDoc = await getDoc(statsRef);
+        if (statsDoc.exists()) {
+          await updateDoc(statsRef, { visitors: increment(1) });
+        } else {
+          await setDoc(statsRef, { visitors: 1, date: today });
+        }
+      } catch (error) {
+        console.error('Error tracking visitor:', error);
+      }
+    };
+    trackVisitor();
+  }, []);
 
   const refreshProfile = async () => {
     if (!user) return;

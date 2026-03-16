@@ -13,6 +13,15 @@ export const Navbar: React.FC = () => {
     navigate('/login');
   };
 
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <nav className="bg-white border-b border-slate-100 sticky top-0 z-50">
       <div className="container mx-auto px-4 h-20 flex items-center justify-between gap-4">
@@ -67,14 +76,18 @@ export const Navbar: React.FC = () => {
 
         {/* Center: Search Bar (New) */}
         <div className="flex-grow max-w-md hidden md:block">
-          <div className="relative group">
+          <form onSubmit={handleSearch} className="relative group">
             <input 
               type="text" 
               placeholder="ابحث عن الخدمة التي تريدها..."
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-2.5 pr-12 pl-4 outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
-          </div>
+            <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2">
+              <Search className="w-5 h-5 text-slate-400 group-focus-within:text-primary transition-colors" />
+            </button>
+          </form>
         </div>
 
         {/* Center/Right: Navigation Links (Desktop) */}

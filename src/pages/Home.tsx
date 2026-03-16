@@ -17,12 +17,31 @@ enum OperationType {
   WRITE = 'write',
 }
 
+import { useSearchParams } from 'react-router-dom';
+
 export const Home: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const query = searchParams.get('search');
+    if (query !== null) {
+      setSearchQuery(query);
+    }
+  }, [searchParams]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (val) {
+      setSearchParams({ search: val });
+    } else {
+      setSearchParams({});
+    }
+  };
   const [orderModal, setOrderModal] = useState<{ show: boolean; service: Service | null }>({ show: false, service: null });
   const [playerAppId, setPlayerAppId] = useState('');
   const [orderStatus, setOrderStatus] = useState<{ type: 'success' | 'error' | 'processing' | null; message: string }>({ type: null, message: '' });
@@ -132,17 +151,16 @@ export const Home: React.FC = () => {
               الأصناف
             </h3>
             
-            {/* Search Bar in Sidebar */}
-            <div className="relative group">
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-              <input 
-                type="text"
-                placeholder="بحث..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-xs"
-              />
-            </div>
+              <div className="relative group">
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                <input 
+                  type="text"
+                  placeholder="بحث..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-xs"
+                />
+              </div>
 
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
               <button 

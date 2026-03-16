@@ -12,9 +12,15 @@ enum OperationType {
   GET = 'get',
   WRITE = 'write',
 }
-import { Plus, Trash2, Check, X, Loader2, Package, Wallet, ListTree, Users, ArrowUpRight, Search } from 'lucide-react';
+import { Plus, Trash2, Check, X, Loader2, Package, Wallet, ListTree, Users, ArrowUpRight, Search, BarChart3, TrendingUp, Calendar, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { updateBalance, listUsers, UserDC } from '../services/dataconnect';
+
+interface DailyStats {
+  id: string;
+  visitors: number;
+  date: string;
+}
 
 export const AdminDashboard: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -22,6 +28,7 @@ export const AdminDashboard: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [allUsers, setAllUsers] = useState<UserDC[]>([]);
+  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [userSearch, setUserSearch] = useState('');
 
@@ -72,8 +79,14 @@ export const AdminDashboard: React.FC = () => {
       handleFirestoreError(error, OperationType.GET, 'deposits');
     });
 
+    const unsubStats = onSnapshot(query(collection(db, 'stats'), orderBy('date', 'desc')), (s) => {
+      setDailyStats(s.docs.map(d => ({ id: d.id, ...d.data() } as DailyStats)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'stats');
+    });
+
     setLoading(false);
-    return () => { unsubCats(); unsubServices(); unsubOrders(); unsubDeposits(); };
+    return () => { unsubCats(); unsubServices(); unsubOrders(); unsubDeposits(); unsubStats(); };
   }, []);
 
   const handleSeedData = async () => {
@@ -177,6 +190,58 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const parseDate = (date: any) => {
+    if (!date) return new Date(0);
+    if (typeof date === 'string') return new Date(date);
+    if (date.toDate) return date.toDate();
+    return new Date(date);
+  };
+
+  const calculateFinancials = () => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(now.getDate() - 7);
+    
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(now.getMonth() - 1);
+
+    const filterByDate = (items: any[], dateLimit: Date) => {
+      return items.filter(item => parseDate(item.createdAt) >= dateLimit);
+    };
+
+    const completedOrders = orders.filter(o => o.status === 'completed');
+    const approvedDeposits = deposits.filter(d => d.status === 'approved');
+
+    const sumAmount = (items: any[]) => items.reduce((sum, item) => sum + (item.amount || item.price || 0), 0);
+
+    const isToday = (date: any) => {
+      const d = parseDate(date);
+      return d.toISOString().split('T')[0] === todayStr;
+    };
+
+    return {
+      daily: {
+        revenue: sumAmount(completedOrders.filter(o => isToday(o.createdAt))),
+        deposits: sumAmount(approvedDeposits.filter(d => isToday(d.createdAt))),
+        visitors: dailyStats.find(s => s.date === todayStr)?.visitors || 0
+      },
+      weekly: {
+        revenue: sumAmount(filterByDate(completedOrders, oneWeekAgo)),
+        deposits: sumAmount(filterByDate(approvedDeposits, oneWeekAgo)),
+        visitors: dailyStats.filter(s => new Date(s.date) >= oneWeekAgo).reduce((sum, s) => sum + s.visitors, 0)
+      },
+      monthly: {
+        revenue: sumAmount(filterByDate(completedOrders, oneMonthAgo)),
+        deposits: sumAmount(filterByDate(approvedDeposits, oneMonthAgo)),
+        visitors: dailyStats.filter(s => new Date(s.date) >= oneMonthAgo).reduce((sum, s) => sum + s.visitors, 0)
+      }
+    };
+  };
+
+  const financials = calculateFinancials();
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
@@ -185,14 +250,17 @@ export const AdminDashboard: React.FC = () => {
         <div className="space-y-3">
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">لوحة التحكم</h1>
           <p className="text-slate-500 font-medium">مرحباً بك مجدداً، إليك نظرة على أداء المنصة.</p>
-          <button 
-            onClick={handleSeedData}
-            className="btn-secondary text-xs py-2 px-4 w-fit"
-          >
-            تهيئة بيانات الشحن المتخصصة
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={handleSeedData}
+              className="btn-secondary text-xs py-2 px-4 w-fit"
+            >
+              تهيئة بيانات الشحن
+            </button>
+          </div>
         </div>
-        <div className="flex gap-4">
+        
+        <div className="flex flex-wrap gap-4">
           <motion.div 
             whileHover={{ y: -5 }}
             className="bg-white px-6 py-4 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex items-center gap-4"
@@ -217,8 +285,100 @@ export const AdminDashboard: React.FC = () => {
               <p className="text-2xl font-black text-slate-900">{deposits.filter(d => d.status === 'waiting').length}</p>
             </div>
           </motion.div>
+          <motion.div 
+            whileHover={{ y: -5 }}
+            className="bg-white px-6 py-4 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex items-center gap-4"
+          >
+            <div className="p-3 bg-emerald-100 rounded-2xl">
+              <Eye className="w-6 h-6 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest">زوار اليوم</p>
+              <p className="text-2xl font-black text-slate-900">{financials.daily.visitors}</p>
+            </div>
+          </motion.div>
         </div>
       </header>
+
+      {/* Financial Reports Section */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { title: 'تقارير اليوم', data: financials.daily, icon: Calendar, color: 'blue' },
+          { title: 'تقارير الأسبوع', data: financials.weekly, icon: TrendingUp, color: 'indigo' },
+          { title: 'تقارير الشهر', data: financials.monthly, icon: BarChart3, color: 'violet' }
+        ].map((report, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            className="glass-card p-8 rounded-[2.5rem] border border-white/50 space-y-6"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2 bg-${report.color}-100 rounded-xl`}>
+                <report.icon className={`w-5 h-5 text-${report.color}-600`} />
+              </div>
+              <h3 className="font-black text-slate-900">{report.title}</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400">إجمالي المبيعات</span>
+                <span className="font-black text-slate-900">{report.data.revenue.toFixed(2)} د.أ</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400">إجمالي الإيداعات</span>
+                <span className="font-black text-emerald-600">{report.data.deposits.toFixed(2)} د.أ</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400">إجمالي الزوار</span>
+                <span className="font-black text-indigo-600">{report.data.visitors}</span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </section>
+
+      {/* 7-Day Financial Summary */}
+      <section className="glass-card rounded-[2.5rem] overflow-hidden border border-white/50">
+        <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 rounded-xl">
+              <BarChart3 className="w-5 h-5 text-emerald-600" />
+            </div>
+            <h2 className="font-black text-slate-900 text-lg">ملخص آخر 7 أيام</h2>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-right">
+            <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <tr>
+                <th className="px-8 py-4">التاريخ</th>
+                <th className="px-8 py-4">الزوار</th>
+                <th className="px-8 py-4">المبيعات</th>
+                <th className="px-8 py-4">الإيداعات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {dailyStats.slice(0, 7).map(stat => {
+                const dayOrders = orders.filter(o => o.status === 'completed' && parseDate(o.createdAt).toISOString().startsWith(stat.date));
+                const dayDeposits = deposits.filter(d => d.status === 'approved' && parseDate(d.createdAt).toISOString().startsWith(stat.date));
+                const revenue = dayOrders.reduce((sum, o) => sum + o.amount, 0);
+                const depositSum = dayDeposits.reduce((sum, d) => sum + d.amount, 0);
+
+                return (
+                  <tr key={stat.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-8 py-4 font-bold text-slate-700">{stat.date}</td>
+                    <td className="px-8 py-4 text-indigo-600 font-black">{stat.visitors}</td>
+                    <td className="px-8 py-4 text-slate-900 font-black">{revenue.toFixed(2)} د.أ</td>
+                    <td className="px-8 py-4 text-emerald-600 font-black">{depositSum.toFixed(2)} د.أ</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Orders Management */}
