@@ -73,6 +73,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
+  isModerator: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -80,6 +81,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   isAdmin: false,
+  isModerator: false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -164,7 +166,7 @@ export default function App() {
                 email: data.email,
                 displayName: data.username,
                 balance: data.balance,
-                role: firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user',
+                role: data.role || (firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user'),
                 createdAt: data.createdAt || new Date().toISOString(),
               });
             }
@@ -206,9 +208,11 @@ export default function App() {
   }
 
   const isAdmin = profile?.role === 'admin' || (user?.email === 'sameralsoub@gmail.com' && user?.emailVerified);
+  const isModerator = profile?.role === 'moderator';
+  const hasAdminAccess = isAdmin || isModerator;
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin }}>
+    <AuthContext.Provider value={{ user, profile, loading, isAdmin, isModerator }}>
       <Router>
         <Layout>
           <Routes>
@@ -217,7 +221,7 @@ export default function App() {
             <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
             <Route 
               path="/admin" 
-              element={isAdmin ? <AdminDashboard /> : <Navigate to="/" />} 
+              element={hasAdminAccess ? <AdminDashboard /> : <Navigate to="/" />} 
             />
           </Routes>
         </Layout>

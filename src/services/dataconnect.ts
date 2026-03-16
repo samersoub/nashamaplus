@@ -6,6 +6,7 @@ export interface UserDC {
   username: string;
   email: string;
   balance: number;
+  role: 'user' | 'moderator' | 'admin';
   phoneNumber?: string;
 }
 
@@ -16,6 +17,7 @@ export const createUser = async (id: string, username: string, email: string, ph
     username,
     email,
     balance: 0,
+    role: 'user',
     phoneNumber: phoneNumber || null,
     createdAt: new Date().toISOString()
   });

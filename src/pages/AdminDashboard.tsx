@@ -12,7 +12,7 @@ enum OperationType {
   GET = 'get',
   WRITE = 'write',
 }
-import { Plus, Trash2, Check, X, Loader2, Package, Wallet, ListTree, Users, ArrowUpRight, Search, BarChart3, TrendingUp, Calendar, Eye } from 'lucide-react';
+import { Plus, Trash2, Check, X, Loader2, Package, Wallet, ListTree, Users, ArrowUpRight, Search, BarChart3, TrendingUp, Calendar, Eye, Shield, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { updateBalance, listUsers, UserDC } from '../services/dataconnect';
 
@@ -23,6 +23,7 @@ interface DailyStats {
 }
 
 export const AdminDashboard: React.FC = () => {
+  const { isAdmin, isModerator } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -55,7 +56,12 @@ export const AdminDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    const unsubUsers = onSnapshot(collection(db, 'users'), (s) => {
+      setAllUsers(s.docs.map(d => ({ id: d.id, ...d.data() } as UserDC)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'users');
+    });
+
     const unsubCats = onSnapshot(collection(db, 'categories'), (s) => {
       setCategories(s.docs.map(d => ({ id: d.id, ...d.data() } as Category)));
     }, (error) => {
@@ -87,7 +93,7 @@ export const AdminDashboard: React.FC = () => {
     });
 
     setLoading(false);
-    return () => { unsubCats(); unsubServices(); unsubOrders(); unsubDeposits(); unsubStats(); };
+    return () => { unsubUsers(); unsubCats(); unsubServices(); unsubOrders(); unsubDeposits(); unsubStats(); };
   }, []);
 
   const handleSeedData = async () => {
@@ -163,6 +169,14 @@ export const AdminDashboard: React.FC = () => {
       });
     } catch (error) {
       console.error('Error toggling availability:', error);
+    }
+  };
+
+  const handleUpdateRole = async (user: UserDC, newRole: 'user' | 'moderator' | 'admin') => {
+    try {
+      await updateDoc(doc(db, 'users', user.id), { role: newRole });
+    } catch (error) {
+      console.error('Error updating user role:', error);
     }
   };
 
@@ -523,33 +537,94 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* User Management Section */}
-      <section className="glass-card rounded-[2.5rem] overflow-hidden border border-white/50">
-        <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+      {isAdmin && (
+        <section className="glass-card rounded-[2.5rem] overflow-hidden border border-white/50">
+        <div className="p-6 md:p-8 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-slate-50/30 gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-100 rounded-xl">
               <Users className="w-5 h-5 text-indigo-600" />
             </div>
             <h2 className="font-black text-slate-900 text-lg">إدارة الأعضاء</h2>
           </div>
-          <div className="relative">
+          <div className="relative w-full md:w-auto">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
               placeholder="بحث عن عضو..." 
-              className="pr-10 pl-4 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full md:w-64 pr-10 pl-4 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20"
               value={userSearch}
               onChange={(e) => setUserSearch(e.target.value)}
             />
           </div>
         </div>
-        <div className="overflow-x-auto">
+        
+        {/* Mobile View: Cards */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {allUsers.filter(u => (u.username || '').toLowerCase().includes(userSearch.toLowerCase()) || (u.email || '').toLowerCase().includes(userSearch.toLowerCase())).map(user => (
+            <div key={user.id} className="p-6 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-black text-slate-900">{user.username}</p>
+                  <p className="text-[10px] text-slate-400 font-mono">{user.id}</p>
+                  <p className="text-xs text-slate-500 mt-1">{user.email}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="font-black text-primary">{user.balance.toFixed(2)} د.أ</span>
+                  <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${
+                    user.role === 'admin' ? 'bg-amber-100 text-amber-600' : 
+                    user.role === 'moderator' ? 'bg-indigo-100 text-indigo-600' :
+                    'bg-slate-100 text-slate-400'
+                  }`}>
+                    {user.role === 'admin' ? 'مسؤول' : user.role === 'moderator' ? 'مشرف' : 'عضو'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setTopupModal({ show: true, user })}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-xl text-xs font-black transition-all"
+                >
+                  <ArrowUpRight className="w-4 h-4" />
+                  شحن رصيد
+                </button>
+                <div className="flex gap-1">
+                  <button 
+                    onClick={() => handleUpdateRole(user, 'user')}
+                    className={`p-3 rounded-xl transition-all ${user.role === 'user' ? 'bg-slate-200 text-slate-600' : 'bg-slate-50 text-slate-400'}`}
+                    title="عضو"
+                  >
+                    <Users className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleUpdateRole(user, 'moderator')}
+                    className={`p-3 rounded-xl transition-all ${user.role === 'moderator' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}
+                    title="مشرف"
+                  >
+                    <Shield className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleUpdateRole(user, 'admin')}
+                    className={`p-3 rounded-xl transition-all ${user.role === 'admin' ? 'bg-amber-100 text-amber-600' : 'bg-slate-50 text-slate-400'}`}
+                    title="مسؤول"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-right">
             <thead className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-4">المستخدم</th>
                 <th className="px-8 py-4">البريد الإلكتروني</th>
                 <th className="px-8 py-4">الرصيد</th>
-                <th className="px-8 py-4">الإجراءات</th>
+                <th className="px-8 py-4">الرتبة</th>
+                <th className="px-8 py-4 text-left">الإجراءات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -564,13 +639,47 @@ export const AdminDashboard: React.FC = () => {
                     <span className="font-black text-primary">{user.balance.toFixed(2)} دينار</span>
                   </td>
                   <td className="px-8 py-4">
-                    <button 
-                      onClick={() => setTopupModal({ show: true, user })}
-                      className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-black hover:bg-primary hover:text-white transition-all"
-                    >
-                      <ArrowUpRight className="w-4 h-4" />
-                      شحن رصيد
-                    </button>
+                    <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl ${
+                      user.role === 'admin' ? 'bg-amber-100 text-amber-600 border border-amber-200' : 
+                      user.role === 'moderator' ? 'bg-indigo-100 text-indigo-600 border border-indigo-200' :
+                      'bg-slate-100 text-slate-400 border border-slate-200'
+                    }`}>
+                      {user.role === 'admin' ? 'مسؤول' : user.role === 'moderator' ? 'مشرف' : 'عضو'}
+                    </span>
+                  </td>
+                  <td className="px-8 py-4">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="flex gap-1 bg-slate-50 p-1 rounded-2xl border border-slate-100">
+                        <button 
+                          onClick={() => handleUpdateRole(user, 'user')}
+                          className={`p-2 rounded-xl transition-all ${user.role === 'user' ? 'bg-white shadow-sm text-slate-600' : 'text-slate-400 hover:text-slate-600'}`}
+                          title="عضو"
+                        >
+                          <Users className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleUpdateRole(user, 'moderator')}
+                          className={`p-2 rounded-xl transition-all ${user.role === 'moderator' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400 hover:text-indigo-600'}`}
+                          title="مشرف"
+                        >
+                          <Shield className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleUpdateRole(user, 'admin')}
+                          className={`p-2 rounded-xl transition-all ${user.role === 'admin' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-400 hover:text-amber-600'}`}
+                          title="مسؤول"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <button 
+                        onClick={() => setTopupModal({ show: true, user })}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-black hover:bg-primary hover:text-white transition-all"
+                      >
+                        <ArrowUpRight className="w-4 h-4" />
+                        شحن رصيد
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -578,10 +687,12 @@ export const AdminDashboard: React.FC = () => {
           </table>
         </div>
       </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Categories Management */}
-        <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50">
+        {isAdmin && (
+          <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
               <ListTree className="w-5 h-5 text-primary" />
@@ -622,9 +733,11 @@ export const AdminDashboard: React.FC = () => {
             ))}
           </div>
         </section>
+      )}
 
         {/* Services Management */}
-        <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50">
+        {isAdmin && (
+          <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-xl">
               <Plus className="w-5 h-5 text-primary" />
@@ -666,6 +779,7 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </form>
         </section>
+      )}
 
         {/* Existing Services List */}
         <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50 lg:col-span-2">

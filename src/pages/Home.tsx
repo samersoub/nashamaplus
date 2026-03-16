@@ -141,37 +141,37 @@ export const Home: React.FC = () => {
   return (
     <div className="space-y-12 pb-20">
       {/* Hero Section - Modern & Immersive */}
-      <section className="relative h-[450px] lg:h-[550px] rounded-[2.5rem] lg:rounded-[3.5rem] overflow-hidden group shadow-2xl shadow-primary/10">
+      <section className="relative h-[400px] lg:h-[550px] rounded-[2rem] lg:rounded-[3.5rem] overflow-hidden group shadow-2xl shadow-primary/10">
         <img 
           src="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80" 
           alt="Hero" 
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
           referrerPolicy="no-referrer"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex flex-col justify-end p-8 lg:p-12">
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex flex-col justify-end p-6 lg:p-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl space-y-6"
+            className="max-w-2xl space-y-4 lg:space-y-6"
           >
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="bg-primary/20 backdrop-blur-md border border-primary/30 px-4 py-1.5 rounded-full text-[10px] font-black text-primary uppercase tracking-widest">عرض خاص</span>
-              <span className="bg-white/10 backdrop-blur-md border border-white/20 px-4 py-1.5 rounded-full text-[10px] font-black text-white uppercase tracking-widest">تسليم فوري</span>
+            <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+              <span className="bg-primary/20 backdrop-blur-md border border-primary/30 px-3 py-1 lg:px-4 lg:py-1.5 rounded-full text-[8px] lg:text-[10px] font-black text-primary uppercase tracking-widest">عرض خاص</span>
+              <span className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 lg:px-4 lg:py-1.5 rounded-full text-[8px] lg:text-[10px] font-black text-white uppercase tracking-widest">تسليم فوري</span>
             </div>
-            <h1 className="text-4xl lg:text-6xl font-black text-white leading-[1.1] tracking-tighter">
+            <h1 className="text-3xl lg:text-6xl font-black text-white leading-[1.1] tracking-tighter">
               اشحن ألعابك المفضلة <br />
               <span className="text-primary italic">بأفضل الأسعار</span>
             </h1>
-            <p className="text-white/70 font-medium text-base lg:text-lg leading-relaxed max-w-lg">
+            <p className="text-white/70 font-medium text-sm lg:text-lg leading-relaxed max-w-lg line-clamp-2 lg:line-clamp-none">
               نشامى بلس هي وجهتك الأولى في الأردن لشحن شدات ببجي، جواهر فري فاير، وبطاقات الهدايا العالمية.
             </p>
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-wrap gap-3 lg:gap-4 pt-2">
               <button 
                 onClick={() => {
                   const el = document.getElementById('categories');
                   el?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="bg-primary hover:bg-primary-dark text-white px-8 py-3.5 rounded-2xl font-black text-sm transition-all flex items-center gap-2 shadow-lg shadow-primary/25 active:scale-95"
+                className="bg-primary hover:bg-primary-dark text-white px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 shadow-lg shadow-primary/25 active:scale-95"
               >
                 ابدأ الشحن الآن
                 <ArrowUpRight className="w-4 h-4" />
@@ -180,7 +180,7 @@ export const Home: React.FC = () => {
                 href="https://wa.me/962781254771"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 px-8 py-3.5 rounded-2xl font-black text-sm transition-all flex items-center gap-2 active:scale-95"
+                className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 active:scale-95"
               >
                 تواصل معنا
               </a>
@@ -196,10 +196,10 @@ export const Home: React.FC = () => {
           <div className="w-12 h-1 bg-primary rounded-full" />
         </div>
 
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-6 lg:gap-8">
+        <div className="flex overflow-x-auto pb-4 gap-6 lg:grid lg:grid-cols-6 lg:gap-8 no-scrollbar">
           <button 
             onClick={() => setSelectedCategory('all')}
-            className="group flex flex-col items-center gap-4"
+            className="group flex flex-col items-center gap-4 shrink-0"
           >
             <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center transition-all duration-300 ${
               selectedCategory === 'all' 
@@ -219,7 +219,7 @@ export const Home: React.FC = () => {
                 const el = document.getElementById('services');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="group flex flex-col items-center gap-4"
+              className="group flex flex-col items-center gap-4 shrink-0"
             >
               <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-full overflow-hidden transition-all duration-300 ${
                 selectedCategory === cat.id 

@@ -110,7 +110,7 @@ export const Profile: React.FC = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl shadow-slate-200/50 relative overflow-hidden group"
+            className="bg-slate-900 p-6 lg:p-8 rounded-[2rem] lg:rounded-[3rem] text-white shadow-2xl shadow-slate-200/50 relative overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-50" />
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000" />

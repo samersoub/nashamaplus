@@ -9,7 +9,7 @@
         "email": { "type": "string", "description": "User email" },
         "displayName": { "type": "string", "description": "User display name" },
         "balance": { "type": "number", "description": "Virtual wallet balance" },
-        "role": { "type": "string", "enum": ["user", "admin"], "description": "User role" },
+        "role": { "type": "string", "enum": ["user", "moderator", "admin"], "description": "User role" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
       },
       "required": ["uid", "email", "balance", "role"]
