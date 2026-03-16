@@ -254,7 +254,7 @@ export const AdminDashboard: React.FC = () => {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${isActive
                     ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 scale-105'
                     : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
@@ -474,7 +474,7 @@ export const AdminDashboard: React.FC = () => {
                         <tr key={deposit.id} className="hover:bg-slate-50 transition-colors">
                           <td className="px-6 py-4 font-black text-emerald-600">+{deposit.amount} د.أ</td>
                           <td className="px-6 py-4 text-xs font-bold text-slate-600">{deposit.userEmail}</td>
-                          <td className="px-6 py-4 text-xs font-bold text-slate-400">{new Date(deposit.createdAt).toLocaleDateString('ar-JO')}</td>
+                          <td className="px-6 py-4 text-xs font-bold text-slate-400">{parseDate(deposit.createdAt).toLocaleDateString('ar-JO')}</td>
                           <td className="px-6 py-4">
                             <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-xl border ${deposit.status === 'approved' ? 'bg-green-50 text-green-600 border-green-100' :
                               deposit.status === 'rejected' ? 'bg-red-50 text-red-600 border-red-100' :

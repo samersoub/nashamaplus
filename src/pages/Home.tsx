@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, runTransaction, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth, handleFirestoreError } from '../App';
 import { Service, Category, Order } from '../types';
@@ -166,8 +166,8 @@ export const Home: React.FC = () => {
               <button
                 onClick={() => setSelectedCategory('all')}
                 className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${selectedCategory === 'all'
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                  : 'text-slate-600 hover:bg-slate-50 border border-transparent'
                   }`}
               >
                 <span>الكل</span>
@@ -178,8 +178,8 @@ export const Home: React.FC = () => {
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all font-bold text-sm ${selectedCategory === cat.id
-                      ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                      : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                    : 'text-slate-600 hover:bg-slate-50 border border-transparent'
                     }`}
                 >
                   <span>{cat.name}</span>

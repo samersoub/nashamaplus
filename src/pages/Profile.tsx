@@ -4,7 +4,6 @@ import { db } from '../firebase';
 import { useAuth } from '../App';
 import { Order, Deposit } from '../types';
 import { Wallet, History, Send, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowUpRight, MessageCircle } from 'lucide-react';
-import { sendDepositRequestToWhatsApp } from '../services/whatsapp';
 import { motion } from 'motion/react';
 import { createTransaction } from '../services/dataconnect';
 import { WHATSAPP_NUMBER } from '../constants';
@@ -84,10 +83,12 @@ export const Profile: React.FC = () => {
       const amountToSubmit = depositAmount;
       setDepositAmount('');
 
-      // Redirect to WhatsApp after a short delay to show success message
-      setTimeout(() => {
-        sendDepositRequestToWhatsApp(parseFloat(amountToSubmit), profile.email);
-      }, 1000);
+      // Construct WhatsApp URL and redirect
+      const message = `مرحباً أدمن، أود إيداع ${amountToSubmit} دينار في محفظتي في نشامى بلس. بريدي الإلكتروني هو: ${profile.email}`;
+      const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+
+      // Direct open to avoid popup blockers
+      window.open(whatsappUrl, '_blank');
 
       await refreshProfile();
       setTimeout(() => setDepositSuccess(false), 15000);
@@ -96,6 +97,13 @@ export const Profile: React.FC = () => {
     } finally {
       setIsDepositing(false);
     }
+  };
+
+  const parseDate = (date: any) => {
+    if (!date) return new Date();
+    if (typeof date === 'string') return new Date(date);
+    if (date?.toDate) return date.toDate();
+    return new Date(date);
   };
 
   if (loading) {
@@ -221,8 +229,8 @@ export const Profile: React.FC = () => {
                   <div key={order.id} className="p-6 flex items-center justify-between hover:bg-slate-50/80 transition-all group">
                     <div className="flex items-center gap-5">
                       <div className={`p-3 rounded-2xl transition-transform group-hover:scale-110 ${order.status === 'completed' ? 'bg-green-100 text-green-600' :
-                          order.status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                            'bg-red-100 text-red-600'
+                        order.status === 'pending' ? 'bg-amber-100 text-amber-600' :
+                          'bg-red-100 text-red-600'
                         }`}>
                         {order.status === 'completed' ? <CheckCircle2 className="w-6 h-6" /> :
                           order.status === 'pending' ? <Clock className="w-6 h-6" /> :
@@ -238,7 +246,7 @@ export const Profile: React.FC = () => {
                     </div>
                     <div className="text-left">
                       <p className="font-black text-slate-900 text-lg">-{order.amount} <span className="text-xs">دينار</span></p>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">{new Date(order.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1">{parseDate(order.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
                     </div>
                   </div>
                 ))
@@ -268,8 +276,8 @@ export const Profile: React.FC = () => {
                   <div key={deposit.id} className="p-6 flex items-center justify-between hover:bg-slate-50/80 transition-all group">
                     <div className="flex items-center gap-5">
                       <div className={`p-3 rounded-2xl transition-transform group-hover:scale-110 ${deposit.status === 'approved' ? 'bg-green-100 text-green-600' :
-                          deposit.status === 'waiting' ? 'bg-amber-100 text-amber-600' :
-                            'bg-red-100 text-red-600'
+                        deposit.status === 'waiting' ? 'bg-amber-100 text-amber-600' :
+                          'bg-red-100 text-red-600'
                         }`}>
                         {deposit.status === 'approved' ? <CheckCircle2 className="w-6 h-6" /> :
                           deposit.status === 'waiting' ? <Clock className="w-6 h-6" /> :
@@ -278,8 +286,8 @@ export const Profile: React.FC = () => {
                       <div>
                         <p className="font-black text-slate-900">طلب شحن رصيد</p>
                         <p className={`text-[10px] font-black uppercase mt-1 px-2 py-0.5 rounded-md inline-block ${deposit.status === 'waiting' ? 'bg-amber-50 text-amber-600' :
-                            deposit.status === 'approved' ? 'bg-green-50 text-green-600' :
-                              'bg-red-50 text-red-600'
+                          deposit.status === 'approved' ? 'bg-green-50 text-green-600' :
+                            'bg-red-50 text-red-600'
                           }`}>
                           {deposit.status === 'waiting' ? 'قيد الانتظار' : deposit.status === 'approved' ? 'تمت الموافقة' : 'مرفوض'}
                         </p>
@@ -287,7 +295,7 @@ export const Profile: React.FC = () => {
                     </div>
                     <div className="text-left">
                       <p className="font-black text-slate-900 text-lg">+{deposit.amount} <span className="text-xs">دينار</span></p>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">{new Date(deposit.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
+                      <p className="text-[10px] font-bold text-slate-400 mt-1">{parseDate(deposit.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
                     </div>
                   </div>
                 ))
