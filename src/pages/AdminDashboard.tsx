@@ -524,7 +524,7 @@ export const AdminDashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {allUsers.filter(u => u.username.toLowerCase().includes(userSearch.toLowerCase()) || u.email.toLowerCase().includes(userSearch.toLowerCase())).map(user => (
+              {allUsers.filter(u => (u.username || '').toLowerCase().includes(userSearch.toLowerCase()) || (u.email || '').toLowerCase().includes(userSearch.toLowerCase())).map(user => (
                 <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-8 py-4">
                     <p className="font-black text-slate-900">{user.username}</p>

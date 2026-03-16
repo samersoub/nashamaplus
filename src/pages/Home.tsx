@@ -124,7 +124,7 @@ export const Home: React.FC = () => {
 
   const filteredServices = services.filter(service => {
     const matchesCategory = selectedCategory === 'all' || service.categoryId === selectedCategory;
-    const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (service.name || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
