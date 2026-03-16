@@ -5,15 +5,8 @@ export const sendDepositRequestToWhatsApp = (amount: number, userEmail: string) 
   const encodedMessage = encodeURIComponent(message);
   const url = `https://wa.me/${ADMIN_PHONE}?text=${encodedMessage}`;
   
-  // Try multiple methods to ensure redirection works in different environments
-  try {
-    const win = window.open(url, '_blank');
-    if (!win || win.closed || typeof win.closed === 'undefined') {
-      window.location.href = url;
-    }
-  } catch (e) {
-    window.location.href = url;
-  }
+  // Direct redirection is more reliable after async tasks
+  window.location.href = url;
 };
 
 export const sendOrderNotificationToWhatsApp = (serviceName: string, playerAppId: string, userEmail: string) => {
@@ -21,12 +14,5 @@ export const sendOrderNotificationToWhatsApp = (serviceName: string, playerAppId
   const encodedMessage = encodeURIComponent(message);
   const url = `https://wa.me/${ADMIN_PHONE}?text=${encodedMessage}`;
 
-  try {
-    const win = window.open(url, '_blank');
-    if (!win || win.closed || typeof win.closed === 'undefined') {
-      window.location.href = url;
-    }
-  } catch (e) {
-    window.location.href = url;
-  }
+  window.location.href = url;
 };

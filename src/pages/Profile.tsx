@@ -79,13 +79,17 @@ export const Profile: React.FC = () => {
 
       await addDoc(collection(db, 'deposits'), depositData);
       
-      // Redirect to WhatsApp
-      sendDepositRequestToWhatsApp(parseFloat(depositAmount), profile.email);
-      
       setDepositSuccess(true);
+      const amountToSubmit = depositAmount;
       setDepositAmount('');
+      
+      // Redirect to WhatsApp after a short delay to show success message
+      setTimeout(() => {
+        sendDepositRequestToWhatsApp(parseFloat(amountToSubmit), profile.email);
+      }, 1000);
+      
       await refreshProfile();
-      setTimeout(() => setDepositSuccess(false), 10000);
+      setTimeout(() => setDepositSuccess(false), 15000);
     } catch (error) {
       console.error('Deposit request failed:', error);
     } finally {

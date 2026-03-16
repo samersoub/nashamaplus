@@ -92,22 +92,28 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Visitor tracking
-    const trackVisitor = async () => {
+    // Connection test & Visitor tracking
+    const initializeStats = async () => {
       const today = new Date().toISOString().split('T')[0];
       const statsRef = doc(db, 'stats', today);
+      
       try {
-        const statsDoc = await getDoc(statsRef);
-        if (statsDoc.exists()) {
-          await updateDoc(statsRef, { visitors: increment(1) });
-        } else {
-          await setDoc(statsRef, { visitors: 1, date: today });
-        }
+        // Use setDoc with merge to increment or create in one go
+        // This is more atomic and avoids an extra getDoc call
+        await setDoc(statsRef, { 
+          visitors: increment(1),
+          date: today 
+        }, { merge: true });
       } catch (error) {
-        console.error('Error tracking visitor:', error);
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Firebase connection error: The client is offline. Please check your Firebase configuration in firebase-applet-config.json.");
+        } else {
+          console.error('Error tracking visitor:', error);
+        }
       }
     };
-    trackVisitor();
+    
+    initializeStats();
   }, []);
 
   const refreshProfile = async () => {
