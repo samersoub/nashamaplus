@@ -41,6 +41,7 @@ export const AdminDashboard: React.FC = () => {
   const [newServiceImg, setNewServiceImg] = useState('');
 
   const [topupModal, setTopupModal] = useState<{ show: boolean; user: UserDC | null }>({ show: false, user: null });
+  const [editServiceModal, setEditServiceModal] = useState<{ show: boolean; service: Service | null }>({ show: false, service: null });
   const [topupAmount, setTopupAmount] = useState('');
   const [isTopupLoading, setIsTopupLoading] = useState(false);
 
@@ -129,11 +130,39 @@ export const AdminDashboard: React.FC = () => {
         categoryId: newServiceCatId,
         description: newServiceDesc,
         imageUrl: newServiceImg,
+        isAvailable: true,
         createdAt: serverTimestamp()
       });
       setNewServiceName(''); setNewServicePrice(''); setNewServiceDesc(''); setNewServiceImg('');
     } catch (error) {
       console.error('Error adding service:', error);
+    }
+  };
+
+  const handleUpdateService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editServiceModal.service) return;
+    try {
+      await updateDoc(doc(db, 'services', editServiceModal.service.id), {
+        name: editServiceModal.service.name,
+        price: editServiceModal.service.price,
+        description: editServiceModal.service.description,
+        imageUrl: editServiceModal.service.imageUrl,
+        categoryId: editServiceModal.service.categoryId
+      });
+      setEditServiceModal({ show: false, service: null });
+    } catch (error) {
+      console.error('Error updating service:', error);
+    }
+  };
+
+  const handleToggleAvailability = async (service: Service) => {
+    try {
+      await updateDoc(doc(db, 'services', service.id), {
+        isAvailable: !service.isAvailable
+      });
+    } catch (error) {
+      console.error('Error toggling availability:', error);
     }
   };
 
@@ -637,6 +666,54 @@ export const AdminDashboard: React.FC = () => {
             </button>
           </form>
         </section>
+
+        {/* Existing Services List */}
+        <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50 lg:col-span-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Package className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="font-black text-slate-900 text-lg">إدارة الخدمات الحالية</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {services.map(service => (
+              <div key={service.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <div className="aspect-video rounded-2xl overflow-hidden bg-slate-50">
+                  <img src={service.imageUrl} alt={service.name} className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900">{service.name}</h3>
+                  <p className="text-primary font-bold">{service.price} د.أ</p>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setEditServiceModal({ show: true, service })}
+                    className="flex-1 py-2 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors"
+                  >
+                    تعديل
+                  </button>
+                  <button 
+                    onClick={() => handleToggleAvailability(service)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
+                      service.isAvailable !== false 
+                      ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' 
+                      : 'bg-red-50 text-red-600 hover:bg-red-100'
+                    }`}
+                  >
+                    {service.isAvailable !== false ? 'متوفر' : 'غير متوفر'}
+                  </button>
+                  <button 
+                    onClick={() => deleteDoc(doc(db, 'services', service.id))}
+                    className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
       {/* Top-up Modal */}
@@ -699,6 +776,66 @@ export const AdminDashboard: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Service Modal */}
+      <AnimatePresence>
+        {editServiceModal.show && editServiceModal.service && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditServiceModal({ show: false, service: null })}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden p-8 space-y-8"
+            >
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-slate-900">تعديل الخدمة</h3>
+                <p className="text-slate-500 font-medium">تعديل بيانات الخدمة: <span className="text-primary font-bold">{editServiceModal.service.name}</span></p>
+              </div>
+
+              <form onSubmit={handleUpdateService} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">اسم الخدمة</label>
+                  <input required type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" value={editServiceModal.service.name} onChange={e => setEditServiceModal({ ...editServiceModal, service: { ...editServiceModal.service!, name: e.target.value } })} />
+                </div>
+                
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">السعر (دينار)</label>
+                  <input required type="number" step="0.01" className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" value={editServiceModal.service.price} onChange={e => setEditServiceModal({ ...editServiceModal, service: { ...editServiceModal.service!, price: parseFloat(e.target.value) } })} />
+                </div>
+                
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">الصنف</label>
+                  <select required className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold appearance-none" value={editServiceModal.service.categoryId} onChange={e => setEditServiceModal({ ...editServiceModal, service: { ...editServiceModal.service!, categoryId: e.target.value } })}>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">رابط الصورة</label>
+                  <input type="text" className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" value={editServiceModal.service.imageUrl} onChange={e => setEditServiceModal({ ...editServiceModal, service: { ...editServiceModal.service!, imageUrl: e.target.value } })} />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">الوصف</label>
+                  <textarea className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold h-28 resize-none" value={editServiceModal.service.description} onChange={e => setEditServiceModal({ ...editServiceModal, service: { ...editServiceModal.service!, description: e.target.value } })} />
+                </div>
+
+                <div className="md:col-span-2 flex gap-3">
+                  <button type="submit" className="flex-1 btn-primary py-4 rounded-2xl">حفظ التغييرات</button>
+                  <button type="button" onClick={() => setEditServiceModal({ show: false, service: null })} className="px-8 py-4 rounded-2xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors">إلغاء</button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

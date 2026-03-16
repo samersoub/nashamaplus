@@ -22,6 +22,7 @@ export interface Service {
   price: number;
   description: string;
   imageUrl: string;
+  isAvailable?: boolean;
 }
 
 export interface Order {
