@@ -1,23 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, runTransaction, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useAuth, handleFirestoreError } from '../App';
-import { Service, Category, Order } from '../types';
+import { useAuth, handleFirestoreError, OperationType } from '../App';
+import { Service, Category, Order, BannerSettings } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, ShoppingCart, CheckCircle2, XCircle, AlertCircle, Zap, ChevronLeft, ChevronRight, TrendingUp, Clock, Loader2, ListTree, ArrowUpRight, MessageCircle } from 'lucide-react';
+import { Search, ShoppingCart, CheckCircle2, XCircle, AlertCircle, Zap, ChevronLeft, ChevronRight, TrendingUp, Clock, Loader2, ListTree, ArrowUpRight, MessageCircle, Wallet } from 'lucide-react';
 import { sendOrderNotificationToWhatsApp } from '../services/whatsapp';
 import { updateBalance, createTransaction, getUser as getDCUser } from '../services/dataconnect';
 
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 
 export const Home: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,6 +17,7 @@ export const Home: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [loading, setLoading] = useState(true);
+  const [banner, setBanner] = useState<BannerSettings | null>(null);
 
   useEffect(() => {
     const query = searchParams.get('search');
@@ -57,9 +49,18 @@ export const Home: React.FC = () => {
       setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
     }, (error) => handleFirestoreError(error, OperationType.GET, 'categories'));
 
+    const unsubBanner = onSnapshot(doc(db, 'settings', 'banner'), (docSnap) => {
+      if (docSnap.exists()) {
+        setBanner(docSnap.data() as BannerSettings);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/banner');
+    });
+
     return () => {
       unsubServices();
       unsubCategories();
+      unsubBanner();
     };
   }, []);
 
@@ -140,10 +141,10 @@ export const Home: React.FC = () => {
 
   return (
     <div className="space-y-12 pb-20">
-      {/* Hero Section - Modern & Immersive */}
+      {/* Hero Section - Dynamic Banner or Default */}
       <section className="relative h-[400px] lg:h-[550px] rounded-[2rem] lg:rounded-[3.5rem] overflow-hidden group shadow-2xl shadow-primary/10">
         <img 
-          src="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80" 
+          src={(banner?.isActive && banner.imageUrl) ? banner.imageUrl : "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80"} 
           alt="Hero" 
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
           referrerPolicy="no-referrer"
@@ -159,85 +160,94 @@ export const Home: React.FC = () => {
               <span className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 lg:px-4 lg:py-1.5 rounded-full text-[8px] lg:text-[10px] font-black text-white uppercase tracking-widest">تسليم فوري</span>
             </div>
             <h1 className="text-3xl lg:text-6xl font-black text-white leading-[1.1] tracking-tighter">
-              اشحن ألعابك المفضلة <br />
-              <span className="text-primary italic">بأفضل الأسعار</span>
+              {(banner?.isActive && banner.title) ? banner.title : (
+                <>
+                  اشحن ألعابك المفضلة <br />
+                  <span className="text-primary italic">بأفضل الأسعار</span>
+                </>
+              )}
             </h1>
             <p className="text-white/70 font-medium text-sm lg:text-lg leading-relaxed max-w-lg line-clamp-2 lg:line-clamp-none">
-              نشامى بلس هي وجهتك الأولى في الأردن لشحن شدات ببجي، جواهر فري فاير، وبطاقات الهدايا العالمية.
+              {(banner?.isActive && banner.subtitle) ? banner.subtitle : "نشامى بلس هي وجهتك الأولى في الأردن لشحن شدات ببجي، جواهر فري فاير، وبطاقات الهدايا العالمية."}
             </p>
             <div className="flex flex-wrap gap-3 lg:gap-4 pt-2">
-              <button 
-                onClick={() => {
-                  const el = document.getElementById('categories');
-                  el?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="bg-primary hover:bg-primary-dark text-white px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 shadow-lg shadow-primary/25 active:scale-95"
-              >
-                ابدأ الشحن الآن
-                <ArrowUpRight className="w-4 h-4" />
-              </button>
-              <a 
-                href="https://wa.me/962781254771"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 active:scale-95"
-              >
-                تواصل معنا
-              </a>
+              {(banner?.isActive && banner.link) ? (
+                <a 
+                  href={banner.link}
+                  className="bg-primary hover:bg-primary-dark text-white px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 shadow-lg shadow-primary/25 active:scale-95"
+                >
+                  استكشف العرض
+                  <ArrowUpRight className="w-4 h-4" />
+                </a>
+              ) : (
+                <button 
+                  onClick={() => {
+                    const el = document.getElementById('services');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="bg-primary hover:bg-primary-dark text-white px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 shadow-lg shadow-primary/25 active:scale-95"
+                >
+                  ابدأ الشحن الآن
+                  <ArrowUpRight className="w-4 h-4" />
+                </button>
+              )}
+              {user ? (
+                <Link 
+                  to="/profile"
+                  className="bg-white text-slate-900 hover:bg-slate-50 px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 shadow-xl active:scale-95"
+                >
+                  <Wallet className="w-4 h-4 text-primary" />
+                  <span>المحفظة ({profile?.balance.toFixed(2)} د.أ)</span>
+                </Link>
+              ) : (
+                <a 
+                  href="https://wa.me/962781254771"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 active:scale-95"
+                >
+                  تواصل معنا
+                </a>
+              )}
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Featured Categories Grid - Circular Icons */}
-      <section id="categories" className="space-y-8">
-        <div className="flex flex-col items-center text-center space-y-2">
-          <h2 className="text-2xl lg:text-3xl font-black text-slate-900">الأصناف المميزة</h2>
-          <div className="w-12 h-1 bg-primary rounded-full" />
-        </div>
-
-        <div className="flex overflow-x-auto pb-4 gap-6 lg:grid lg:grid-cols-6 lg:gap-8 no-scrollbar">
-          <button 
-            onClick={() => setSelectedCategory('all')}
-            className="group flex flex-col items-center gap-4 shrink-0"
-          >
-            <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center transition-all duration-300 ${
-              selectedCategory === 'all' 
-              ? 'bg-primary shadow-xl shadow-primary/30 scale-110' 
-              : 'bg-white border border-slate-100 hover:border-primary/30 hover:shadow-lg'
-            }`}>
-              <Zap className={`w-8 h-8 lg:w-10 lg:h-10 ${selectedCategory === 'all' ? 'text-white' : 'text-primary'}`} />
-            </div>
-            <span className={`font-black text-xs lg:text-sm transition-colors ${selectedCategory === 'all' ? 'text-primary' : 'text-slate-600'}`}>الكل</span>
-          </button>
-
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setSelectedCategory(cat.id);
-                const el = document.getElementById('services');
-                el?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="group flex flex-col items-center gap-4 shrink-0"
-            >
-              <div className={`w-20 h-20 lg:w-24 lg:h-24 rounded-full overflow-hidden transition-all duration-300 ${
-                selectedCategory === cat.id 
-                ? 'ring-4 ring-primary ring-offset-4 scale-110 shadow-xl shadow-primary/20' 
-                : 'bg-white border border-slate-100 hover:border-primary/30 hover:shadow-lg'
-              }`}>
-                <img 
-                  src={cat.icon || `https://picsum.photos/seed/${cat.name}/200/200`} 
-                  alt={cat.name}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+      {/* Promotional Banner Section */}
+      {banner?.isActive && (
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative h-48 lg:h-64 rounded-[2.5rem] overflow-hidden shadow-2xl group"
+        >
+          <img 
+            src={banner.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&q=80"} 
+            alt={banner.title} 
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent flex flex-col justify-center p-8 lg:p-12">
+            <div className="max-w-md space-y-3">
+              <div className="inline-flex items-center gap-2 bg-primary/20 backdrop-blur-md border border-primary/30 px-3 py-1 rounded-full">
+                <TrendingUp className="w-3 h-3 text-primary" />
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest">عرض مميز</span>
               </div>
-              <span className={`font-black text-xs lg:text-sm transition-colors ${selectedCategory === cat.id ? 'text-primary' : 'text-slate-600'}`}>{cat.name}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+              <h2 className="text-2xl lg:text-4xl font-black text-white leading-tight">{banner.title}</h2>
+              <p className="text-white/70 font-medium text-sm lg:text-base line-clamp-2">{banner.subtitle}</p>
+              {banner.link && (
+                <a 
+                  href={banner.link}
+                  className="inline-flex items-center gap-2 mt-4 bg-white text-slate-900 px-6 py-2.5 rounded-xl font-black text-sm hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg"
+                >
+                  عرض التفاصيل
+                  <ArrowUpRight className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+          </div>
+        </motion.section>
+      )}
 
       {/* Main Content Area with Sidebar */}
       <div className="flex flex-col lg:flex-row gap-12" id="services">

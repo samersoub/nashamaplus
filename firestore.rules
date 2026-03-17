@@ -21,6 +21,9 @@ service cloud.firestore {
     //
     // Collection: transactions
     // Fields: id, userId, amount, transactionType, status, createdAt
+    //
+    // Collection: settings
+    // Fields: imageUrl, title, subtitle, link, isActive
     // ===============================================================
 
     // Helper Functions
@@ -81,8 +84,8 @@ service cloud.firestore {
 
     // Rules
     match /users/{userId} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-      allow read: if hasAdminAccess();
+      allow get: if isAuthenticated() && (request.auth.uid == userId || hasAdminAccess());
+      allow list: if hasAdminAccess();
       allow create: if isAuthenticated() && request.auth.uid == userId && isValidUser(request.resource.data) && 
                     (
                       (request.resource.data.role == 'admin' && request.auth.token.email == "sameralsoub@gmail.com") ||
@@ -105,15 +108,16 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
-      allow read: if hasAdminAccess();
+      allow get: if isAuthenticated() && (request.auth.uid == resource.data.userId || hasAdminAccess());
+      allow list: if isAuthenticated() && (resource.data.userId == request.auth.uid || hasAdminAccess());
       allow create: if isAuthenticated() && isValidOrder(request.resource.data);
       allow update: if hasAdminAccess();
       allow delete: if false;
     }
 
     match /deposits/{depositId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || hasAdminAccess());
+      allow get: if isAuthenticated() && (resource.data.userId == request.auth.uid || hasAdminAccess());
+      allow list: if isAuthenticated() && (resource.data.userId == request.auth.uid || hasAdminAccess());
       allow create: if isAuthenticated() && isValidDeposit(request.resource.data);
       allow update: if hasAdminAccess();
       allow delete: if false;
@@ -129,6 +133,11 @@ service cloud.firestore {
     match /stats/{date} {
       allow read: if hasAdminAccess();
       allow create, update: if true; // Allow anyone to increment visitor count
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

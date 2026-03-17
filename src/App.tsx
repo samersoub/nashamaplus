@@ -10,7 +10,7 @@ import { doc, onSnapshot, getDoc, setDoc, updateDoc, increment, getDocFromServer
 import { auth, db } from './firebase';
 import { UserProfile } from './types';
 
-enum OperationType {
+export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
   DELETE = 'delete',
@@ -164,7 +164,7 @@ export default function App() {
               setProfile({
                 uid: firebaseUser.uid,
                 email: data.email,
-                displayName: data.username,
+                displayName: data.displayName || data.username || 'User',
                 balance: data.balance,
                 role: data.role || (firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user'),
                 createdAt: data.createdAt || new Date().toISOString(),
@@ -172,7 +172,7 @@ export default function App() {
             }
             setLoading(false);
           }, (error) => {
-            console.error('Profile listener error:', error);
+            handleFirestoreError(error, OperationType.GET, `users/${firebaseUser.uid}`);
             setLoading(false);
           });
 

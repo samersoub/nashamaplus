@@ -1,17 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, orderBy, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, doc, deleteDoc, query, orderBy, getDoc, runTransaction, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useAuth, handleFirestoreError } from '../App';
-import { Category, Service, Order, Deposit, UserProfile } from '../types';
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
+import { useAuth, handleFirestoreError, OperationType } from '../App';
+import { Category, Service, Order, Deposit, UserProfile, BannerSettings } from '../types';
 import { Plus, Trash2, Check, X, Loader2, Package, Wallet, ListTree, Users, ArrowUpRight, Search, BarChart3, TrendingUp, Calendar, Eye, Shield, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { updateBalance, listUsers, getUser, UserDC } from '../services/dataconnect';
@@ -30,6 +21,13 @@ export const AdminDashboard: React.FC = () => {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [allUsers, setAllUsers] = useState<UserDC[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
+  const [bannerSettings, setBannerSettings] = useState<BannerSettings>({
+    imageUrl: '',
+    title: '',
+    subtitle: '',
+    link: '',
+    isActive: true
+  });
   const [loading, setLoading] = useState(true);
   const [userSearch, setUserSearch] = useState('');
 
@@ -92,8 +90,16 @@ export const AdminDashboard: React.FC = () => {
       handleFirestoreError(error, OperationType.GET, 'stats');
     });
 
+    const unsubBanner = onSnapshot(doc(db, 'settings', 'banner'), (docSnap) => {
+      if (docSnap.exists()) {
+        setBannerSettings(docSnap.data() as BannerSettings);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/banner');
+    });
+
     setLoading(false);
-    return () => { unsubUsers(); unsubCats(); unsubServices(); unsubOrders(); unsubDeposits(); unsubStats(); };
+    return () => { unsubUsers(); unsubCats(); unsubServices(); unsubOrders(); unsubDeposits(); unsubStats(); unsubBanner(); };
   }, []);
 
   const handleSeedData = async () => {
@@ -228,6 +234,17 @@ export const AdminDashboard: React.FC = () => {
       alert('حدث خطأ أثناء الشحن');
     } finally {
       setIsTopupLoading(false);
+    }
+  };
+
+  const handleUpdateBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await setDoc(doc(db, 'settings', 'banner'), bannerSettings);
+      alert('تم تحديث البنر بنجاح!');
+    } catch (error) {
+      console.error('Error updating banner:', error);
+      alert('حدث خطأ أثناء تحديث البنر');
     }
   };
 
@@ -688,6 +705,100 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Banner Management */}
+        {isAdmin && (
+          <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50 lg:col-span-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-xl">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <h2 className="font-black text-slate-900 text-lg">إعدادات البنر الإعلاني</h2>
+            </div>
+
+            <form onSubmit={handleUpdateBanner} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">رابط صورة البنر</label>
+                <input 
+                  type="text" 
+                  placeholder="https://..." 
+                  className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                  value={bannerSettings.imageUrl} 
+                  onChange={e => setBannerSettings({...bannerSettings, imageUrl: e.target.value})} 
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">العنوان الرئيسي</label>
+                <input 
+                  type="text" 
+                  placeholder="مثال: عرض خاص على شدات ببجي" 
+                  className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                  value={bannerSettings.title} 
+                  onChange={e => setBannerSettings({...bannerSettings, title: e.target.value})} 
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">العنوان الفرعي</label>
+                <input 
+                  type="text" 
+                  placeholder="مثال: احصل على خصم 20% لفترة محدودة" 
+                  className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                  value={bannerSettings.subtitle} 
+                  onChange={e => setBannerSettings({...bannerSettings, subtitle: e.target.value})} 
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">رابط التوجيه (اختياري)</label>
+                <input 
+                  type="text" 
+                  placeholder="https://..." 
+                  className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                  value={bannerSettings.link} 
+                  onChange={e => setBannerSettings({...bannerSettings, link: e.target.value})} 
+                />
+              </div>
+
+              <div className="flex items-center gap-4 px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl">
+                <label className="text-sm font-bold text-slate-700">تفعيل البنر</label>
+                <input 
+                  type="checkbox" 
+                  className="w-6 h-6 accent-primary" 
+                  checked={bannerSettings.isActive} 
+                  onChange={e => setBannerSettings({...bannerSettings, isActive: e.target.checked})} 
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <button className="w-full btn-primary py-5 rounded-2xl font-black text-lg shadow-xl shadow-primary/25 active:scale-95 transition-transform">
+                  تحديث إعدادات البنر
+                </button>
+              </div>
+            </form>
+
+            {bannerSettings.imageUrl && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mr-2">معاينة البنر</h3>
+                <div className="relative h-48 lg:h-64 rounded-[2rem] overflow-hidden shadow-xl">
+                  <img 
+                    src={bannerSettings.imageUrl} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-transparent flex flex-col justify-center p-8 lg:p-12">
+                    <div className="max-w-md space-y-2">
+                      <h2 className="text-2xl lg:text-3xl font-black text-white">{bannerSettings.title}</h2>
+                      <p className="text-white/80 font-medium text-sm lg:text-base">{bannerSettings.subtitle}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
         {/* Categories Management */}
         {isAdmin && (
           <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50">

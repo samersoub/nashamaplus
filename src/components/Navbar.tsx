@@ -29,10 +29,13 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2 lg:gap-4 order-1">
           {user ? (
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl">
-                <Wallet className="w-4 h-4 text-primary" />
-                <span className="text-xs font-black text-slate-900">{profile?.balance.toFixed(2)} د.أ</span>
-              </div>
+              <Link 
+                to="/profile"
+                className="flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl hover:border-primary/30 hover:shadow-lg transition-all"
+              >
+                <Wallet className="w-3.5 h-3.5 lg:w-4 h-4 text-primary" />
+                <span className="text-[10px] lg:text-xs font-black text-slate-900">{profile?.balance.toFixed(2)} د.أ</span>
+              </Link>
               <Link 
                 to="/profile" 
                 className="p-2.5 text-slate-600 hover:text-primary transition-colors bg-slate-50 rounded-2xl border border-slate-100"

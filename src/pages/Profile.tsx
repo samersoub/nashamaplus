@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import { useAuth } from '../App';
+import { useAuth, handleFirestoreError, OperationType } from '../App';
 import { Order, Deposit } from '../types';
 import { Wallet, History, Send, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowUpRight, MessageCircle } from 'lucide-react';
 import { sendDepositRequestToWhatsApp } from '../services/whatsapp';
@@ -38,11 +38,30 @@ export const Profile: React.FC = () => {
     );
 
     const unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
-      setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
+      setOrders(snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || new Date().toISOString()
+        } as Order;
+      }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'orders');
     });
 
     const unsubscribeDeposits = onSnapshot(depositsQuery, (snapshot) => {
-      setDeposits(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Deposit)));
+      setDeposits(snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || new Date().toISOString()
+        } as Deposit;
+      }));
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'deposits');
       setLoading(false);
     });
 
@@ -227,15 +246,20 @@ export const Profile: React.FC = () => {
                       </div>
                       <div>
                         <p className="font-black text-slate-900">{order.serviceName}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ID:</span>
-                          <p className="text-xs font-mono text-primary font-bold">{order.playerAppId}</p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ID:</span>
+                            <p className="text-xs font-mono text-primary font-bold">{order.playerAppId}</p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-slate-300" />
+                            <p className="text-[10px] font-bold text-slate-400">{new Date(order.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
                     <div className="text-left">
                       <p className="font-black text-slate-900 text-lg">-{order.amount} <span className="text-xs">دينار</span></p>
-                      <p className="text-[10px] font-bold text-slate-400 mt-1">{new Date(order.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
                     </div>
                   </div>
                 ))

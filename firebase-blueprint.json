@@ -64,6 +64,19 @@
         "createdAt": { "type": "string", "format": "date-time", "description": "Request timestamp" }
       },
       "required": ["userId", "amount", "status", "createdAt"]
+    },
+    "Banner": {
+      "title": "Banner",
+      "description": "Promotional banner on the home page",
+      "type": "object",
+      "properties": {
+        "imageUrl": { "type": "string", "description": "URL of the banner image" },
+        "title": { "type": "string", "description": "Banner title" },
+        "subtitle": { "type": "string", "description": "Banner subtitle" },
+        "link": { "type": "string", "description": "Optional link for the banner" },
+        "isActive": { "type": "boolean", "description": "Whether the banner is visible" }
+      },
+      "required": ["imageUrl", "isActive"]
     }
   },
   "firestore": {
@@ -71,6 +84,7 @@
     "categories": { "schema": "Category", "description": "Service categories" },
     "services": { "schema": "Service", "description": "Available services" },
     "orders": { "schema": "Order", "description": "Service orders" },
-    "deposits": { "schema": "Deposit", "description": "Deposit requests" }
+    "deposits": { "schema": "Deposit", "description": "Deposit requests" },
+    "settings": { "schema": "Banner", "description": "App settings including banner" }
   }
 }

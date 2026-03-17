@@ -45,3 +45,11 @@ export interface Deposit {
   status: 'waiting' | 'approved' | 'rejected';
   createdAt: string;
 }
+
+export interface BannerSettings {
+  imageUrl: string;
+  title: string;
+  subtitle: string;
+  link: string;
+  isActive: boolean;
+}
