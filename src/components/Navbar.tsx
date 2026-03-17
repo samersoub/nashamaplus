@@ -31,7 +31,7 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-2 lg:gap-4 order-1">
           <div className="flex items-center gap-2">
             {/* Currency Selector */}
-            <div className="relative group hidden sm:block">
+            <div className="relative group">
               <select 
                 value={currency.code}
                 onChange={(e) => setCurrency(e.target.value as CurrencyCode)}
