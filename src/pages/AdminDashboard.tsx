@@ -6,6 +6,7 @@ import { Category, Service, Order, Deposit, UserProfile, BannerSettings } from '
 import { Plus, Trash2, Check, X, Loader2, Package, Wallet, ListTree, Users, ArrowUpRight, Search, BarChart3, TrendingUp, Calendar, Eye, Shield, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { updateBalance, listUsers, getUser, UserDC } from '../services/dataconnect';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface DailyStats {
   id: string;
@@ -15,6 +16,7 @@ interface DailyStats {
 
 export const AdminDashboard: React.FC = () => {
   const { isAdmin, isModerator } = useAuth();
+  const { currency, format } = useCurrency();
   const [categories, setCategories] = useState<Category[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -408,11 +410,11 @@ export const AdminDashboard: React.FC = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400">إجمالي المبيعات</span>
-                <span className="font-black text-slate-900">{report.data.revenue.toFixed(2)} د.أ</span>
+                <span className="font-black text-slate-900">{format(report.data.revenue)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400">إجمالي الإيداعات</span>
-                <span className="font-black text-emerald-600">{report.data.deposits.toFixed(2)} د.أ</span>
+                <span className="font-black text-emerald-600">{format(report.data.deposits)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-slate-400">إجمالي الزوار</span>
@@ -454,8 +456,8 @@ export const AdminDashboard: React.FC = () => {
                   <tr key={stat.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-8 py-4 font-bold text-slate-700">{stat.date}</td>
                     <td className="px-8 py-4 text-indigo-600 font-black">{stat.visitors}</td>
-                    <td className="px-8 py-4 text-slate-900 font-black">{revenue.toFixed(2)} د.أ</td>
-                    <td className="px-8 py-4 text-emerald-600 font-black">{depositSum.toFixed(2)} د.أ</td>
+                    <td className="px-8 py-4 text-slate-900 font-black">{format(revenue)}</td>
+                    <td className="px-8 py-4 text-emerald-600 font-black">{format(depositSum)}</td>
                   </tr>
                 );
               })}
@@ -539,8 +541,7 @@ export const AdminDashboard: React.FC = () => {
                 <div key={deposit.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-all group">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-black text-slate-900 text-lg">+{deposit.amount}</p>
-                      <span className="text-xs font-bold text-slate-400">دينار</span>
+                      <p className="font-black text-slate-900 text-lg">+{format(deposit.amount)}</p>
                     </div>
                     <p className="text-xs font-bold text-slate-500">{deposit.userEmail}</p>
                   </div>
@@ -610,7 +611,7 @@ export const AdminDashboard: React.FC = () => {
                   <p className="text-xs text-slate-500 mt-1">{user.email}</p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <span className="font-black text-primary">{user.balance.toFixed(2)} د.أ</span>
+                  <span className="font-black text-primary">{format(user.balance)}</span>
                   <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${
                     user.role === 'admin' ? 'bg-amber-100 text-amber-600' : 
                     user.role === 'moderator' ? 'bg-indigo-100 text-indigo-600' :
@@ -677,7 +678,7 @@ export const AdminDashboard: React.FC = () => {
                   </td>
                   <td className="px-8 py-4 text-sm text-slate-600">{user.email}</td>
                   <td className="px-8 py-4">
-                    <span className="font-black text-primary">{user.balance.toFixed(2)} دينار</span>
+                    <span className="font-black text-primary">{format(user.balance)}</span>
                   </td>
                   <td className="px-8 py-4">
                     <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl ${
@@ -1017,7 +1018,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900">{service.name}</h3>
-                  <p className="text-primary font-bold">{service.price} د.أ</p>
+                  <p className="text-primary font-bold">{format(service.price)}</p>
                 </div>
                 <div className="flex gap-2">
                   <button 
@@ -1073,7 +1074,7 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="bg-slate-50 p-6 rounded-3xl space-y-2">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الرصيد الحالي</p>
-                <p className="text-2xl font-black text-slate-900">{topupModal.user.balance.toFixed(2)} دينار</p>
+                <p className="text-2xl font-black text-slate-900">{format(topupModal.user.balance)}</p>
               </div>
 
               <div className="space-y-4">

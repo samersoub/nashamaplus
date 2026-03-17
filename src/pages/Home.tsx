@@ -9,8 +9,10 @@ import { sendOrderNotificationToWhatsApp } from '../services/whatsapp';
 import { updateBalance, createTransaction, getUser as getDCUser } from '../services/dataconnect';
 
 import { useSearchParams, Link } from 'react-router-dom';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 export const Home: React.FC = () => {
+  const { currency, format } = useCurrency();
   const [searchParams, setSearchParams] = useSearchParams();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -207,7 +209,7 @@ export const Home: React.FC = () => {
                   className="bg-white text-slate-900 hover:bg-slate-50 px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 shadow-xl active:scale-95"
                 >
                   <Wallet className="w-4 h-4 text-primary" />
-                  <span>المحفظة ({profile?.balance.toFixed(2)} د.أ)</span>
+                  <span>المحفظة ({profile?.balance !== undefined ? format(profile.balance) : '0.00'})</span>
                 </Link>
               ) : (
                 <a 
@@ -346,7 +348,7 @@ export const Home: React.FC = () => {
                       referrerPolicy="no-referrer"
                     />
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl text-sm font-black text-primary shadow-lg">
-                      {service.price} د.أ
+                      {format(service.price)}
                     </div>
                     {service.isAvailable === false && (
                       <div className="absolute top-4 left-4 bg-red-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg z-10">
@@ -426,7 +428,7 @@ export const Home: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-black text-slate-900">{orderModal.service.name}</h3>
-                    <p className="text-primary font-black text-lg">{orderModal.service.price} دينار</p>
+                    <p className="text-primary font-black text-lg">{format(orderModal.service.price)}</p>
                   </div>
                 </div>
 
@@ -465,7 +467,7 @@ export const Home: React.FC = () => {
                       <div className="bg-slate-50 p-4 rounded-xl">
                         <div className="flex justify-between items-center text-sm">
                           <span className="text-slate-500 font-bold">رصيدك الحالي:</span>
-                          <span className="font-black text-slate-900">{profile?.balance.toFixed(2)} دينار</span>
+                          <span className="font-black text-slate-900">{profile?.balance !== undefined ? format(profile.balance) : '0.00'}</span>
                         </div>
                       </div>
                     )}

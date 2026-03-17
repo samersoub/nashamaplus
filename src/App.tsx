@@ -86,6 +86,8 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+import { CurrencyProvider } from './contexts/CurrencyContext';
+
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -212,21 +214,23 @@ export default function App() {
   const hasAdminAccess = isAdmin || isModerator;
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isAdmin, isModerator }}>
-      <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-            <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
-            <Route 
-              path="/admin" 
-              element={hasAdminAccess ? <AdminDashboard /> : <Navigate to="/" />} 
-            />
-          </Routes>
-        </Layout>
-      </Router>
-    </AuthContext.Provider>
+    <CurrencyProvider>
+      <AuthContext.Provider value={{ user, profile, loading, isAdmin, isModerator }}>
+        <Router>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+              <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
+              <Route 
+                path="/admin" 
+                element={hasAdminAccess ? <AdminDashboard /> : <Navigate to="/" />} 
+              />
+            </Routes>
+          </Layout>
+        </Router>
+      </AuthContext.Provider>
+    </CurrencyProvider>
   );
 }
 

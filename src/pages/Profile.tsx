@@ -7,9 +7,11 @@ import { Wallet, History, Send, Clock, CheckCircle2, XCircle, Loader2, AlertCirc
 import { sendDepositRequestToWhatsApp } from '../services/whatsapp';
 import { motion } from 'motion/react';
 import { createTransaction } from '../services/dataconnect';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 export const Profile: React.FC = () => {
   const { user, profile } = useAuth();
+  const { currency, format, convert } = useCurrency();
   const [orders, setOrders] = useState<Order[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,8 +146,8 @@ export const Profile: React.FC = () => {
               <div className="space-y-1">
                 <p className="text-xs font-bold text-slate-400">الرصيد المتاح</p>
                 <div className="flex items-baseline gap-2">
-                  <h2 className="text-5xl font-black tracking-tight">{profile?.balance.toFixed(2)}</h2>
-                  <span className="text-sm font-bold text-primary">دينار</span>
+                  <h2 className="text-5xl font-black tracking-tight">{profile?.balance !== undefined ? convert(profile.balance) : '0.00'}</h2>
+                  <span className="text-sm font-bold text-primary">{currency.symbol}</span>
                 </div>
               </div>
             </div>
@@ -172,7 +174,7 @@ export const Profile: React.FC = () => {
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
                 />
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">دينار</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">{currency.symbol}</span>
               </div>
               <button 
                 disabled={isDepositing}
@@ -259,7 +261,7 @@ export const Profile: React.FC = () => {
                       </div>
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-slate-900 text-lg">-{order.amount} <span className="text-xs">دينار</span></p>
+                      <p className="font-black text-slate-900 text-lg">-{format(order.amount)}</p>
                     </div>
                   </div>
                 ))
@@ -309,7 +311,7 @@ export const Profile: React.FC = () => {
                       </div>
                     </div>
                     <div className="text-left">
-                      <p className="font-black text-slate-900 text-lg">+{deposit.amount} <span className="text-xs">دينار</span></p>
+                      <p className="font-black text-slate-900 text-lg">+{format(deposit.amount)}</p>
                       <p className="text-[10px] font-bold text-slate-400 mt-1">{new Date(deposit.createdAt).toLocaleDateString('ar-JO', { day: 'numeric', month: 'long' })}</p>
                     </div>
                   </div>
