@@ -17,7 +17,8 @@ export const Home: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [loading, setLoading] = useState(true);
-  const [banner, setBanner] = useState<BannerSettings | null>(null);
+  const [heroBanner, setHeroBanner] = useState<BannerSettings | null>(null);
+  const [promoBanner, setPromoBanner] = useState<BannerSettings | null>(null);
 
   useEffect(() => {
     const query = searchParams.get('search');
@@ -49,18 +50,27 @@ export const Home: React.FC = () => {
       setCategories(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category)));
     }, (error) => handleFirestoreError(error, OperationType.GET, 'categories'));
 
-    const unsubBanner = onSnapshot(doc(db, 'settings', 'banner'), (docSnap) => {
+    const unsubHeroBanner = onSnapshot(doc(db, 'settings', 'hero_banner'), (docSnap) => {
       if (docSnap.exists()) {
-        setBanner(docSnap.data() as BannerSettings);
+        setHeroBanner(docSnap.data() as BannerSettings);
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'settings/banner');
+      handleFirestoreError(error, OperationType.GET, 'settings/hero_banner');
+    });
+
+    const unsubPromoBanner = onSnapshot(doc(db, 'settings', 'promo_banner'), (docSnap) => {
+      if (docSnap.exists()) {
+        setPromoBanner(docSnap.data() as BannerSettings);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/promo_banner');
     });
 
     return () => {
       unsubServices();
       unsubCategories();
-      unsubBanner();
+      unsubHeroBanner();
+      unsubPromoBanner();
     };
   }, []);
 
@@ -144,7 +154,7 @@ export const Home: React.FC = () => {
       {/* Hero Section - Dynamic Banner or Default */}
       <section className="relative h-[400px] lg:h-[550px] rounded-[2rem] lg:rounded-[3.5rem] overflow-hidden group shadow-2xl shadow-primary/10">
         <img 
-          src={(banner?.isActive && banner.imageUrl) ? banner.imageUrl : "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80"} 
+          src={(heroBanner?.isActive && heroBanner.imageUrl) ? heroBanner.imageUrl : "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80"} 
           alt="Hero" 
           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
           referrerPolicy="no-referrer"
@@ -160,7 +170,7 @@ export const Home: React.FC = () => {
               <span className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 lg:px-4 lg:py-1.5 rounded-full text-[8px] lg:text-[10px] font-black text-white uppercase tracking-widest">تسليم فوري</span>
             </div>
             <h1 className="text-3xl lg:text-6xl font-black text-white leading-[1.1] tracking-tighter">
-              {(banner?.isActive && banner.title) ? banner.title : (
+              {(heroBanner?.isActive && heroBanner.title) ? heroBanner.title : (
                 <>
                   اشحن ألعابك المفضلة <br />
                   <span className="text-primary italic">بأفضل الأسعار</span>
@@ -168,12 +178,12 @@ export const Home: React.FC = () => {
               )}
             </h1>
             <p className="text-white/70 font-medium text-sm lg:text-lg leading-relaxed max-w-lg line-clamp-2 lg:line-clamp-none">
-              {(banner?.isActive && banner.subtitle) ? banner.subtitle : "نشامى بلس هي وجهتك الأولى في الأردن لشحن شدات ببجي، جواهر فري فاير، وبطاقات الهدايا العالمية."}
+              {(heroBanner?.isActive && heroBanner.subtitle) ? heroBanner.subtitle : "نشامى بلس هي وجهتك الأولى في الأردن لشحن شدات ببجي، جواهر فري فاير، وبطاقات الهدايا العالمية."}
             </p>
             <div className="flex flex-wrap gap-3 lg:gap-4 pt-2">
-              {(banner?.isActive && banner.link) ? (
+              {(heroBanner?.isActive && heroBanner.link) ? (
                 <a 
-                  href={banner.link}
+                  href={heroBanner.link}
                   className="bg-primary hover:bg-primary-dark text-white px-6 py-3 lg:px-8 lg:py-3.5 rounded-xl lg:rounded-2xl font-black text-xs lg:text-sm transition-all flex items-center gap-2 shadow-lg shadow-primary/25 active:scale-95"
                 >
                   استكشف العرض
@@ -215,15 +225,15 @@ export const Home: React.FC = () => {
       </section>
 
       {/* Promotional Banner Section */}
-      {banner?.isActive && (
+      {promoBanner?.isActive && (
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative h-48 lg:h-64 rounded-[2.5rem] overflow-hidden shadow-2xl group"
         >
           <img 
-            src={banner.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&q=80"} 
-            alt={banner.title} 
+            src={promoBanner.imageUrl || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600&q=80"} 
+            alt={promoBanner.title} 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             referrerPolicy="no-referrer"
           />
@@ -233,11 +243,11 @@ export const Home: React.FC = () => {
                 <TrendingUp className="w-3 h-3 text-primary" />
                 <span className="text-[10px] font-black text-primary uppercase tracking-widest">عرض مميز</span>
               </div>
-              <h2 className="text-2xl lg:text-4xl font-black text-white leading-tight">{banner.title}</h2>
-              <p className="text-white/70 font-medium text-sm lg:text-base line-clamp-2">{banner.subtitle}</p>
-              {banner.link && (
+              <h2 className="text-2xl lg:text-4xl font-black text-white leading-tight">{promoBanner.title}</h2>
+              <p className="text-white/70 font-medium text-sm lg:text-base line-clamp-2">{promoBanner.subtitle}</p>
+              {promoBanner.link && (
                 <a 
-                  href={banner.link}
+                  href={promoBanner.link}
                   className="inline-flex items-center gap-2 mt-4 bg-white text-slate-900 px-6 py-2.5 rounded-xl font-black text-sm hover:bg-primary hover:text-white transition-all active:scale-95 shadow-lg"
                 >
                   عرض التفاصيل

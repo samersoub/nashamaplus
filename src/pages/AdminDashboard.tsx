@@ -21,7 +21,14 @@ export const AdminDashboard: React.FC = () => {
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [allUsers, setAllUsers] = useState<UserDC[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
-  const [bannerSettings, setBannerSettings] = useState<BannerSettings>({
+  const [heroBanner, setHeroBanner] = useState<BannerSettings>({
+    imageUrl: '',
+    title: '',
+    subtitle: '',
+    link: '',
+    isActive: true
+  });
+  const [promoBanner, setPromoBanner] = useState<BannerSettings>({
     imageUrl: '',
     title: '',
     subtitle: '',
@@ -90,16 +97,24 @@ export const AdminDashboard: React.FC = () => {
       handleFirestoreError(error, OperationType.GET, 'stats');
     });
 
-    const unsubBanner = onSnapshot(doc(db, 'settings', 'banner'), (docSnap) => {
+    const unsubHeroBanner = onSnapshot(doc(db, 'settings', 'hero_banner'), (docSnap) => {
       if (docSnap.exists()) {
-        setBannerSettings(docSnap.data() as BannerSettings);
+        setHeroBanner(docSnap.data() as BannerSettings);
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'settings/banner');
+      handleFirestoreError(error, OperationType.GET, 'settings/hero_banner');
+    });
+
+    const unsubPromoBanner = onSnapshot(doc(db, 'settings', 'promo_banner'), (docSnap) => {
+      if (docSnap.exists()) {
+        setPromoBanner(docSnap.data() as BannerSettings);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/promo_banner');
     });
 
     setLoading(false);
-    return () => { unsubUsers(); unsubCats(); unsubServices(); unsubOrders(); unsubDeposits(); unsubStats(); unsubBanner(); };
+    return () => { unsubUsers(); unsubCats(); unsubServices(); unsubOrders(); unsubDeposits(); unsubStats(); unsubHeroBanner(); unsubPromoBanner(); };
   }, []);
 
   const handleSeedData = async () => {
@@ -237,14 +252,25 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleUpdateBanner = async (e: React.FormEvent) => {
+  const handleUpdateHeroBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await setDoc(doc(db, 'settings', 'banner'), bannerSettings);
-      alert('تم تحديث البنر بنجاح!');
+      await setDoc(doc(db, 'settings', 'hero_banner'), heroBanner);
+      alert('تم تحديث البنر العلوي بنجاح!');
     } catch (error) {
-      console.error('Error updating banner:', error);
-      alert('حدث خطأ أثناء تحديث البنر');
+      console.error('Error updating hero banner:', error);
+      alert('حدث خطأ أثناء تحديث البنر العلوي');
+    }
+  };
+
+  const handleUpdatePromoBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await setDoc(doc(db, 'settings', 'promo_banner'), promoBanner);
+      alert('تم تحديث البنر السفلي بنجاح!');
+    } catch (error) {
+      console.error('Error updating promo banner:', error);
+      alert('حدث خطأ أثناء تحديث البنر السفلي');
     }
   };
 
@@ -705,93 +731,177 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Banner Management */}
+        {/* Hero Banner Management */}
         {isAdmin && (
-          <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50 lg:col-span-2">
+          <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-xl">
                 <TrendingUp className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="font-black text-slate-900 text-lg">إعدادات البنر الإعلاني</h2>
+              <h2 className="font-black text-slate-900 text-lg">إعدادات البنر العلوي (Hero)</h2>
             </div>
 
-            <form onSubmit={handleUpdateBanner} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-2">
+            <form onSubmit={handleUpdateHeroBanner} className="grid grid-cols-1 gap-6">
+              <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">رابط صورة البنر</label>
                 <input 
                   type="text" 
                   placeholder="https://..." 
                   className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
-                  value={bannerSettings.imageUrl} 
-                  onChange={e => setBannerSettings({...bannerSettings, imageUrl: e.target.value})} 
+                  value={heroBanner.imageUrl} 
+                  onChange={e => setHeroBanner({...heroBanner, imageUrl: e.target.value})} 
                 />
               </div>
 
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">العنوان الرئيسي</label>
-                <input 
-                  type="text" 
-                  placeholder="مثال: عرض خاص على شدات ببجي" 
-                  className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
-                  value={bannerSettings.title} 
-                  onChange={e => setBannerSettings({...bannerSettings, title: e.target.value})} 
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">العنوان الرئيسي</label>
+                  <input 
+                    type="text" 
+                    placeholder="مثال: عرض خاص على شدات ببجي" 
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                    value={heroBanner.title} 
+                    onChange={e => setHeroBanner({...heroBanner, title: e.target.value})} 
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">العنوان الفرعي</label>
+                  <input 
+                    type="text" 
+                    placeholder="مثال: احصل على خصم 20% لفترة محدودة" 
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                    value={heroBanner.subtitle} 
+                    onChange={e => setHeroBanner({...heroBanner, subtitle: e.target.value})} 
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">العنوان الفرعي</label>
-                <input 
-                  type="text" 
-                  placeholder="مثال: احصل على خصم 20% لفترة محدودة" 
-                  className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
-                  value={bannerSettings.subtitle} 
-                  onChange={e => setBannerSettings({...bannerSettings, subtitle: e.target.value})} 
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">رابط التوجيه (اختياري)</label>
+                  <input 
+                    type="text" 
+                    placeholder="https://..." 
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                    value={heroBanner.link} 
+                    onChange={e => setHeroBanner({...heroBanner, link: e.target.value})} 
+                  />
+                </div>
+
+                <div className="flex items-center gap-4 px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl">
+                  <label className="text-sm font-bold text-slate-700">تفعيل البنر</label>
+                  <input 
+                    type="checkbox" 
+                    className="w-6 h-6 accent-primary" 
+                    checked={heroBanner.isActive} 
+                    onChange={e => setHeroBanner({...heroBanner, isActive: e.target.checked})} 
+                  />
+                </div>
               </div>
 
+              <button className="w-full btn-primary py-5 rounded-2xl font-black text-lg shadow-xl shadow-primary/25 active:scale-95 transition-transform">
+                تحديث البنر العلوي
+              </button>
+            </form>
+
+            {heroBanner.imageUrl && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mr-2">معاينة البنر العلوي</h3>
+                <div className="relative h-48 rounded-[2rem] overflow-hidden shadow-xl">
+                  <img src={heroBanner.imageUrl} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-transparent flex flex-col justify-center p-8">
+                    <h2 className="text-xl font-black text-white">{heroBanner.title}</h2>
+                    <p className="text-white/80 font-medium text-xs">{heroBanner.subtitle}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Promo Banner Management */}
+        {isAdmin && (
+          <section className="glass-card p-8 rounded-[2.5rem] space-y-8 border border-white/50">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 rounded-xl">
+                <TrendingUp className="w-5 h-5 text-indigo-600" />
+              </div>
+              <h2 className="font-black text-slate-900 text-lg">إعدادات البنر السفلي (Promo)</h2>
+            </div>
+
+            <form onSubmit={handleUpdatePromoBanner} className="grid grid-cols-1 gap-6">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">رابط التوجيه (اختياري)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">رابط صورة البنر</label>
                 <input 
                   type="text" 
                   placeholder="https://..." 
                   className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
-                  value={bannerSettings.link} 
-                  onChange={e => setBannerSettings({...bannerSettings, link: e.target.value})} 
+                  value={promoBanner.imageUrl} 
+                  onChange={e => setPromoBanner({...promoBanner, imageUrl: e.target.value})} 
                 />
               </div>
 
-              <div className="flex items-center gap-4 px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl">
-                <label className="text-sm font-bold text-slate-700">تفعيل البنر</label>
-                <input 
-                  type="checkbox" 
-                  className="w-6 h-6 accent-primary" 
-                  checked={bannerSettings.isActive} 
-                  onChange={e => setBannerSettings({...bannerSettings, isActive: e.target.checked})} 
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">العنوان الرئيسي</label>
+                  <input 
+                    type="text" 
+                    placeholder="مثال: عرض خاص على شدات ببجي" 
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                    value={promoBanner.title} 
+                    onChange={e => setPromoBanner({...promoBanner, title: e.target.value})} 
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">العنوان الفرعي</label>
+                  <input 
+                    type="text" 
+                    placeholder="مثال: احصل على خصم 20% لفترة محدودة" 
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                    value={promoBanner.subtitle} 
+                    onChange={e => setPromoBanner({...promoBanner, subtitle: e.target.value})} 
+                  />
+                </div>
               </div>
 
-              <div className="md:col-span-2">
-                <button className="w-full btn-primary py-5 rounded-2xl font-black text-lg shadow-xl shadow-primary/25 active:scale-95 transition-transform">
-                  تحديث إعدادات البنر
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block mr-2">رابط التوجيه (اختياري)</label>
+                  <input 
+                    type="text" 
+                    placeholder="https://..." 
+                    className="w-full px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold" 
+                    value={promoBanner.link} 
+                    onChange={e => setPromoBanner({...promoBanner, link: e.target.value})} 
+                  />
+                </div>
+
+                <div className="flex items-center gap-4 px-6 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl">
+                  <label className="text-sm font-bold text-slate-700">تفعيل البنر</label>
+                  <input 
+                    type="checkbox" 
+                    className="w-6 h-6 accent-indigo-600" 
+                    checked={promoBanner.isActive} 
+                    onChange={e => setPromoBanner({...promoBanner, isActive: e.target.checked})} 
+                  />
+                </div>
               </div>
+
+              <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-indigo-200 active:scale-95 transition-transform">
+                تحديث البنر السفلي
+              </button>
             </form>
 
-            {bannerSettings.imageUrl && (
+            {promoBanner.imageUrl && (
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mr-2">معاينة البنر</h3>
-                <div className="relative h-48 lg:h-64 rounded-[2rem] overflow-hidden shadow-xl">
-                  <img 
-                    src={bannerSettings.imageUrl} 
-                    alt="Preview" 
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-transparent flex flex-col justify-center p-8 lg:p-12">
-                    <div className="max-w-md space-y-2">
-                      <h2 className="text-2xl lg:text-3xl font-black text-white">{bannerSettings.title}</h2>
-                      <p className="text-white/80 font-medium text-sm lg:text-base">{bannerSettings.subtitle}</p>
-                    </div>
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mr-2">معاينة البنر السفلي</h3>
+                <div className="relative h-48 rounded-[2rem] overflow-hidden shadow-xl">
+                  <img src={promoBanner.imageUrl} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-transparent flex flex-col justify-center p-8">
+                    <h2 className="text-xl font-black text-white">{promoBanner.title}</h2>
+                    <p className="text-white/80 font-medium text-xs">{promoBanner.subtitle}</p>
                   </div>
                 </div>
               </div>
