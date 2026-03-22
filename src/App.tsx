@@ -67,6 +67,7 @@ import { Profile } from './pages/Profile';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Loader2 } from 'lucide-react';
 import { createUser as createDCUser, getUser as getDCUser } from './services/dataconnect';
+import { PhoneVerification } from './components/PhoneVerification';
 
 interface AuthContextType {
   user: User | null;
@@ -170,6 +171,8 @@ export default function App() {
                 balance: data.balance,
                 role: data.role || (firebaseUser.email === 'sameralsoub@gmail.com' ? 'admin' : 'user'),
                 createdAt: data.createdAt || new Date().toISOString(),
+                phoneNumber: data.phoneNumber,
+                isPhoneVerified: data.isPhoneVerified || false,
               });
             }
             setLoading(false);
@@ -212,6 +215,15 @@ export default function App() {
   const isAdmin = profile?.role === 'admin' || (user?.email === 'sameralsoub@gmail.com' && user?.emailVerified);
   const isModerator = profile?.role === 'moderator';
   const hasAdminAccess = isAdmin || isModerator;
+
+  // Phone Verification Check
+  if (user && profile && !profile.isPhoneVerified) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <PhoneVerification />
+      </div>
+    );
+  }
 
   return (
     <CurrencyProvider>

@@ -7,6 +7,8 @@ export interface UserProfile {
   balance: number;
   role: UserRole;
   createdAt: string;
+  phoneNumber?: string;
+  isPhoneVerified?: boolean;
 }
 
 export interface Category {

@@ -2,6 +2,7 @@ import React from 'react';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
 import { MessageCircle } from 'lucide-react';
+import { AIAssistant } from './AIAssistant';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -11,6 +12,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         {children}
       </main>
       <Footer />
+
+      {/* AI Assistant */}
+      <AIAssistant />
 
       {/* Floating WhatsApp Button */}
       <a 
