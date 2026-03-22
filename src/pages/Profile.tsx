@@ -3,7 +3,7 @@ import { collection, query, where, onSnapshot, addDoc, orderBy } from 'firebase/
 import { db } from '../firebase';
 import { useAuth, handleFirestoreError, OperationType } from '../App';
 import { Order, Deposit } from '../types';
-import { Wallet, History, Send, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowUpRight, MessageCircle, User } from 'lucide-react';
+import { Wallet, History, Send, Clock, CheckCircle2, XCircle, Loader2, AlertCircle, ArrowUpRight, MessageCircle } from 'lucide-react';
 import { sendDepositRequestToWhatsApp } from '../services/whatsapp';
 import { motion } from 'motion/react';
 import { createTransaction } from '../services/dataconnect';
@@ -152,35 +152,6 @@ export const Profile: React.FC = () => {
               </div>
             </div>
           </motion.div>
-
-          <div className="bg-white p-8 rounded-[3rem] space-y-6 border border-slate-100 shadow-xl shadow-slate-200/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-xl">
-                <User className="w-5 h-5 text-primary" />
-              </div>
-              <h3 className="font-black text-slate-900">معلومات الحساب</h3>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">البريد الإلكتروني</p>
-                <p className="text-sm font-bold text-slate-900">{profile?.email}</p>
-              </div>
-              
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">رقم الهاتف</p>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-bold text-slate-900">{profile?.phoneNumber || 'غير متوفر'}</p>
-                  {profile?.isPhoneVerified && (
-                    <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-lg text-[10px] font-black">
-                      <CheckCircle2 className="w-3 h-3" />
-                      مفعل
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
 
           <div className="bg-white p-8 rounded-[3rem] space-y-6 border border-slate-100 shadow-xl shadow-slate-200/50">
             <div className="flex items-center gap-3">
