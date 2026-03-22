@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, X, Send, Loader2, Bot, User } from 'lucide-react';
 import { useAuth } from '../App';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-
 export const AIAssistant: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'model'; text: string }[]>([
@@ -27,12 +25,22 @@ export const AIAssistant: React.FC = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        text: "عذراً، لم يتم إعداد مفتاح API الخاص بـ Gemini. يرجى التأكد من إضافته في إعدادات البيئة (Environment Variables)." 
+      }]);
+      return;
+    }
+
     const userMessage = input.trim();
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
     setIsLoading(true);
 
     try {
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [

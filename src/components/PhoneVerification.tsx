@@ -67,8 +67,7 @@ export const PhoneVerification: React.FC = () => {
     setError(null);
 
     try {
-      const credential = PhoneAuthProvider.credential(confirmationResult.verificationId, verificationCode);
-      await linkWithPhoneNumber(user!, phoneNumber, window.recaptchaVerifier); // Re-link with credential or just update firestore
+      await confirmationResult.confirm(verificationCode);
       
       // Update Firestore profile
       const userRef = doc(db, 'users', user!.uid);
@@ -76,7 +75,6 @@ export const PhoneVerification: React.FC = () => {
         phoneNumber: phoneNumber,
         isPhoneVerified: true
       });
-
     } catch (err: any) {
       console.error('Error verifying OTP:', err);
       if (err.code === 'auth/invalid-verification-code') {
